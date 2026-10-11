@@ -372,6 +372,7 @@ strong {
   margin: auto;
   padding: 36px 40px 22px;
   outline: none;
+  scroll-margin-top: 82px;
 }
 .page-title {
   display: flex;
@@ -2892,8 +2893,19 @@ input[type="range"] {
     margin-left: 0;
   }
   .topbar {
-    height: 66px;
-    padding: 0 25px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: #111613eb;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    height: calc(66px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: 25px;
+    padding-right: 25px;
+  }
+  [data-theme="light"] .topbar {
+    background: #ecefe6eb;
   }
   .mobile-menu {
     display: inline-flex;
@@ -2903,6 +2915,7 @@ input[type="range"] {
   }
   .main-content {
     padding: 30px 25px 100px;
+    scroll-margin-top: calc(66px + env(safe-area-inset-top, 0px));
   }
   .bottom-nav {
     display: flex;

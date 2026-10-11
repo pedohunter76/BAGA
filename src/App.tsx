@@ -213,8 +213,11 @@ export default function App() {
       "",
       target === "home" ? "/" : `/?view=${target}`,
     );
-    window.scrollTo({ top: 0 });
-    requestAnimationFrame(() => heading.current?.focus());
+    window.scrollTo({ top: 0, left: 0 });
+    requestAnimationFrame(() => {
+      heading.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, left: 0 });
+    });
   }, []);
   const openLog = (existing?: CigaretteLog, date?: string) => {
     if (!state?.preferences.onboarded) {
@@ -274,7 +277,10 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     const online = () => setOffline(!navigator.onLine);
-    const pop = () => setView(viewFromURL());
+    const pop = () => {
+      setView(viewFromURL());
+      window.scrollTo({ top: 0, left: 0 });
+    };
     const ready = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as InstallEvent);

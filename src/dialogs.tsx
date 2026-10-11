@@ -38,8 +38,8 @@ function ProfileFrame({
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    heading.current?.focus();
-    window.scrollTo({ top: 0 });
+    heading.current?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, left: 0 });
   }, [title]);
   return (
     <section className="profile-page">
