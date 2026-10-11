@@ -1,0 +1,6 @@
+[functions.push-subscription]
+# The handler verifies the bearer token with auth.getUser on every request.
+verify_jwt = false
+
+[functions.reminder-dispatch]
+verify_jwt = false

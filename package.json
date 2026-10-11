@@ -1,0 +1,48 @@
+{
+  "name": "baga",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "build:cloud-test": "VITE_SUPABASE_URL=https://baga-test.supabase.co VITE_SUPABASE_ANON_KEY=sb_publishable_baga_test_fixture vite build --outDir dist-cloud-test",
+    "check:push": "DENO_DIR=.cache/deno deno check --config supabase/functions/deno.json supabase/functions/push-subscription/index.ts supabase/functions/reminder-dispatch/index.ts",
+    "audit:push": "node scripts/audit-push.mjs",
+    "format": "prettier --write src e2e scripts *.ts *.json README.md .github/workflows/ci.yml",
+    "test:cross-browser": "playwright test --config playwright.cross-browser.config.ts",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:budgets": "node scripts/check-budgets.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "dexie": "^4.2.0",
+    "dexie-react-hooks": "^4.2.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "deno": "^2.9.6",
+    "fake-indexeddb": "^6.2.4",
+    "prettier": "^3.9.10",
+    "sharp": "^0.35.5",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.12",
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^5.0.3"
+  }
+}

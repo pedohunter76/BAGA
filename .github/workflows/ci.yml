@@ -1,0 +1,35 @@
+name: Validate BAGA
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run check:secrets
+      - run: npm audit --audit-level=high
+      - run: npm run audit:push
+      - run: npm run check:push
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:budgets
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - name: Browser tests
+        run: |
+          export PLAYWRIGHT_CHROMIUM_EXECUTABLE="$(node --input-type=module -e 'import {chromium} from "@playwright/test"; console.log(chromium.executablePath())')"
+          npm run test:e2e -- --workers=2
+      - name: Cross-browser local flows
+        run: npm run test:cross-browser -- --workers=2
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: test-results/

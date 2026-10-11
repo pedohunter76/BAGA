@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#111614" />
+    <meta
+      name="description"
+      content="Your lungs. Your habits. Your progress. A private cigarette diary, made for you."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <title>BAGA — Your daily breath</title>
+  </head>
+  <body>
+    <div id="root">
+      <main
+        id="startup-status"
+        style="
+          min-height: 100vh;
+          box-sizing: border-box;
+          display: grid;
+          place-content: center;
+          padding: 32px;
+          background: #111614;
+          color: #eff3e9;
+          font-family: system-ui, sans-serif;
+          text-align: center;
+        "
+      >
+        <h1>BAGA</h1>
+        <p role="status">Opening your private space…</p>
+        <p id="startup-help" hidden>
+          The app is taking longer to load. Check your connection and refresh to
+          try again.
+        </p>
+        <a href="/" style="color: #c0ee73">Reload BAGA</a>
+        <noscript
+          ><p>
+            Enable JavaScript in your browser to open your diary.
+          </p></noscript
+        >
+      </main>
+    </div>
+    <script src="/bootstrap-status.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
