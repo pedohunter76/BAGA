@@ -51,8 +51,8 @@ import {
 } from "./domain";
 import type { CigaretteLog, Preferences } from "./domain";
 import { PageTitle, CardTitle, Empty, TextLink, Field, Modal } from "./ui";
-import LungModel from "./LungModel";
 import { ActivityChart } from "./charts";
+import { CigaretteTracker } from "./CigaretteTracker";
 
 function useStats() {
   const { preferences: p, logs, checkins, now } = useApp();
@@ -261,7 +261,7 @@ export function Dashboard() {
       <PageTitle
         eyebrow="A LITTLE AWARENESS, EVERY DAY"
         title={p.name ? `One day at a time, ${p.name}.` : "One day at a time."}
-        description="Your lungs. Your habits. Your progress."
+        description="Your daily breath. Your habits. Your progress."
         action={
           <button
             className="button secondary compact"
@@ -272,40 +272,9 @@ export function Dashboard() {
           </button>
         }
       />
-      {!p.onboarded && (
-        <div className="welcome-banner">
-          <span className="welcome-symbol">
-            <Sparkles size={20} />
-          </span>
-          <div>
-            <strong>Your journey, your pace.</strong>
-            <span>
-              Choose your goal and usual brand. No account. No pressure.
-            </span>
-          </div>
-          <button onClick={openOnboarding}>
-            Make it yours
-            <ArrowRight size={17} />
-          </button>
-        </div>
-      )}
       <div className="dashboard-hero">
         <section className={`card daily-card ${over ? "limit-reached" : ""}`}>
-          <CardTitle
-            title="Today’s overview"
-            action={
-              <span className="pill">
-                <span className="status-dot" />
-                {!p.onboarded
-                  ? "A fresh start"
-                  : p.goalMode === "track"
-                    ? "Tracking only"
-                    : over
-                      ? "Time to pause"
-                      : "At your own pace"}
-              </span>
-            }
-          />
+          <CardTitle title="Today’s overview" />
           <div className="daily-card-body">
             <div className="count-ring">
               <svg viewBox="0 0 240 240" aria-hidden="true">
@@ -341,49 +310,12 @@ export function Dashboard() {
                 </span>
               </div>
             </div>
-            <div className="daily-summary">
-              <span className="small-caps">A MOMENT FOR YOU</span>
-              <h2>
-                {s.count === 0 ? (
-                  <>
-                    A new day.
-                    <br />A little more space.
-                  </>
-                ) : over ? (
-                  <>
-                    Pause. Breathe.
-                    <br />
-                    Keep moving forward.
-                  </>
-                ) : (
-                  <>
-                    Small steps.
-                    <br />
-                    At your own pace.
-                  </>
-                )}
-              </h2>
-              <p>
-                {!p.onboarded ? (
-                  "Get to know your habits, one honest check-in at a time."
-                ) : p.goalMode === "track" ? (
-                  "A clear picture of your day, without the pressure of a target."
-                ) : over ? (
-                  "You’ve reached your chosen limit. Your next choice is a fresh opportunity."
-                ) : (
-                  <>
-                    <strong>{remaining} remaining</strong> before your chosen
-                    limit. A limit is a ceiling, never a target to reach.
-                  </>
-                )}
-              </p>
-              <div className="last-log">
-                <Clock3 size={14} />
-                {latest
-                  ? `${elapsed >= 60 ? `${Math.floor(elapsed / 60)}h ${elapsed % 60}m` : `${elapsed}m`} since your last record`
-                  : "Your diary is ready when you are"}
-              </div>
-            </div>
+            <CigaretteTracker
+              count={s.count}
+              dailyLimit={p.dailyLimit}
+              goalMode={p.goalMode}
+              onboarded={p.onboarded}
+            />
           </div>
           <div className="daily-card-footer">
             <button className="button primary quick-log" onClick={quickLog}>
@@ -405,32 +337,6 @@ export function Dashboard() {
             <span>Undo after a quick log</span>
           </p>
         </section>
-        {p.showLungs && (
-          <section className="card lung-preview">
-            <CardTitle
-              title="A breath of awareness"
-              action={<span className="pill subdued">Illustrative</span>}
-            />
-            <LungModel animation={p.animation} intensity={p.intensity} />
-            <div className="lung-preview-bottom">
-              <div>
-                <h3>Get to know your lungs.</h3>
-                <p>A little perspective, beyond the numbers.</p>
-              </div>
-              <button
-                className="circle-link"
-                aria-label="Explore Lung Studio"
-                onClick={() => navigate("lungs")}
-              >
-                <ArrowUpRight size={22} />
-              </button>
-            </div>
-            <p className="lung-disclaimer">
-              <Info size={12} />
-              Educational illustration. Not a clinical lung scan.
-            </p>
-          </section>
-        )}
       </div>
       <div className={`stats-grid ${!p.showSpending ? "two" : ""}`}>
         <section className="card stat-card">
@@ -497,6 +403,7 @@ export function Dashboard() {
               <small>{s.smokeFree === 1 ? "day" : "days"}</small>
             </strong>
             <p>Confirmed days. Every one counts.</p>
+            <CheckinButton className="button secondary compact checkin-stat-btn" />
           </div>
           <button
             className="stat-link"
@@ -539,48 +446,6 @@ export function Dashboard() {
               recorded this week
             </span>
             <span>Progress begins with noticing.</span>
-          </div>
-        </section>
-        <section className="card activity-card">
-          <CardTitle
-            title="Today’s diary"
-            action={
-              <TextLink onClick={() => navigate("log")}>See all</TextLink>
-            }
-          />
-          {s.records.length ? (
-            <div className="recent-logs">
-              {[...s.records]
-                .sort((a, b) => b.smokedAt.localeCompare(a.smokedAt))
-                .slice(0, 3)
-                .map((log) => (
-                  <LogRow key={log.id} log={log} />
-                ))}
-            </div>
-          ) : (
-            <Empty title="A clean page for today.">
-              Your records will appear here.
-              <br />
-              No cigarettes? That’s a check-in, too.
-            </Empty>
-          )}
-          <div className={`checkin-card ${s.checked ? "completed" : ""}`}>
-            <span className="checkin-icon">
-              {s.checked ? <CheckCheck size={21} /> : <Check size={21} />}
-            </span>
-            <div>
-              <strong>
-                {s.checked
-                  ? "You’ve checked in today."
-                  : "No smoking is progress, too."}
-              </strong>
-              <p>
-                {s.checked
-                  ? "Your diary and streaks are up to date."
-                  : "Mark a smoke-free day or confirm your diary."}
-              </p>
-            </div>
-            <CheckinButton className="checkin-action" />
           </div>
         </section>
       </div>
@@ -723,384 +588,6 @@ export function History() {
           Your diary is saved offline. Changing a brand’s price won’t change
           past spending.
         </span>
-      </div>
-    </>
-  );
-}
-
-export function Lungs() {
-  const { preferences: p, measurements, logs, perform, now } = useApp();
-  const [mode, setMode] = useState<"education" | "capacity" | "exposure">(
-    "education",
-  );
-  const [intensity, setIntensity] = useState(p.intensity);
-  const [animation, setAnimation] = useState(p.animation);
-  const [value, setValue] = useState("");
-  const [reference, setReference] = useState("5");
-  const [source, setSource] = useState("Manual entry");
-  const [type, setType] = useState<"Volume" | "FVC" | "FEV1">("Volume");
-  const [measuredAt, setMeasuredAt] = useState(
-    localDateTime(now.toISOString(), p.timezone),
-  );
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const latest = [...measurements].sort((a, b) =>
-    b.measuredAt.localeCompare(a.measuredAt),
-  )[0];
-  const total = activeLogs(logs).reduce((n, log) => n + log.quantity, 0);
-  return (
-    <>
-      <PageTitle
-        eyebrow="A BREATH OF PERSPECTIVE"
-        title="Your Lung Studio."
-        description="Explore the anatomy. Record your measurements. Keep the two separate."
-      />
-      <div className="tab-list" role="tablist" aria-label="Lung Studio modes">
-        {(
-          [
-            ["education", "Educational model"],
-            ["capacity", "My measurements"],
-            ["exposure", "Recorded exposure"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            role="tab"
-            tabIndex={mode === key ? 0 : -1}
-            onKeyDown={(e) => {
-              const keys = ["education", "capacity", "exposure"] as const;
-              const i = keys.indexOf(key);
-              const next =
-                e.key === "ArrowRight"
-                  ? (i + 1) % 3
-                  : e.key === "ArrowLeft"
-                    ? (i + 2) % 3
-                    : e.key === "Home"
-                      ? 0
-                      : e.key === "End"
-                        ? 2
-                        : -1;
-              if (next >= 0) {
-                e.preventDefault();
-                setMode(keys[next]);
-                document.getElementById(`tab-${keys[next]}`)?.focus();
-              }
-            }}
-            aria-selected={mode === key}
-            aria-controls={`panel-${key}`}
-            id={`tab-${key}`}
-            key={key}
-            onClick={() => setMode(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id={`panel-${mode}`} aria-labelledby={`tab-${mode}`}>
-        {mode === "education" && (
-          <div className="studio-grid">
-            <section className="card studio-model">
-              <CardTitle
-                title="Room for a little curiosity"
-                action={<span className="pill subdued">Educational only</span>}
-              />
-              <LungModel
-                animation={animation}
-                intensity={intensity}
-                interactive
-              />
-              <p className="fine-print">
-                Front-view stylized anatomy. Select a lung or the airways to
-                explore.
-              </p>
-            </section>
-            <div className="studio-controls">
-              <section className="card">
-                <CardTitle
-                  title="Make the illustration yours"
-                  subtitle="These controls change the drawing, never your health records."
-                />
-                <Field
-                  label={`Illustration intensity · ${intensity}%`}
-                  hint="A visual effect only. This percentage is not lung damage."
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={intensity}
-                    onChange={(e) => setIntensity(Number(e.target.value))}
-                  />
-                </Field>
-                <label className="toggle-row">
-                  <div>
-                    <strong>Breathing animation</strong>
-                    <small>
-                      Respects your device’s reduced-motion setting.
-                    </small>
-                  </div>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={animation}
-                    onChange={(e) => setAnimation(e.target.checked)}
-                  />
-                </label>
-                <button
-                  className="button secondary full"
-                  onClick={() => {
-                    void perform(
-                      () => savePreferences({ ...p, intensity, animation }),
-                      "Studio preferences saved.",
-                    );
-                  }}
-                >
-                  Save studio preferences
-                </button>
-              </section>
-              <div className="education-note">
-                <Wind size={27} />
-                <h3>A picture, not a diagnosis.</h3>
-                <p>
-                  Smoking records cannot determine your lung capacity, damage,
-                  or disease risk. This model doesn’t represent your actual
-                  lungs.
-                </p>
-                <p>
-                  For questions about your breathing or test results, speak with
-                  a qualified health professional.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        {mode === "capacity" && (
-          <div className="studio-grid">
-            <section className="card">
-              <CardTitle
-                title="Your entered measurements"
-                subtitle="User-entered values, kept exactly as you record them."
-              />
-              {latest ? (
-                <>
-                  <div className="capacity-number">
-                    <span>
-                      {latest.type} · {latest.source}
-                    </span>
-                    <strong>
-                      {latest.value}
-                      <small>L</small>
-                    </strong>
-                    <p>{dayKey(latest.measuredAt, p.timezone)}</p>
-                  </div>
-                  <div className="capacity-comparison">
-                    <span>Entered value / chosen reference</span>
-                    <strong>
-                      {((latest.value / latest.reference) * 100).toFixed(1)}%
-                    </strong>
-                    <div className="progress-track">
-                      <i
-                        style={{
-                          width: `${Math.min((latest.value / latest.reference) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <small>
-                      Reference: {latest.reference} L · selected by you
-                    </small>
-                  </div>
-                  <div className="notice">
-                    <Info size={18} />
-                    <span>
-                      This arithmetic comparison is not a clinical
-                      interpretation or a predicted lung-capacity percentage.
-                    </span>
-                  </div>
-                  <h3 className="form-section-label">Measurement history</h3>
-                  {[...measurements]
-                    .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))
-                    .map((m) => (
-                      <div className="measurement-row" key={m.id}>
-                        <div>
-                          <strong>
-                            {m.type} · {m.value} L
-                          </strong>
-                          <small>
-                            {dayKey(m.measuredAt, p.timezone)} · {m.source} ·
-                            ref {m.reference} L
-                          </small>
-                        </div>
-                        {confirmDelete === m.id ? (
-                          <button
-                            className="button danger compact"
-                            onClick={async () => {
-                              if (
-                                await perform(
-                                  () => db.measurements.delete(m.id),
-                                  "Measurement deleted.",
-                                )
-                              )
-                                setConfirmDelete(null);
-                            }}
-                          >
-                            Confirm delete
-                          </button>
-                        ) : (
-                          <button
-                            className="icon-button"
-                            aria-label={`Delete ${m.type} measurement`}
-                            onClick={() => setConfirmDelete(m.id)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                </>
-              ) : (
-                <Empty title="No measurements yet.">
-                  No estimate will be invented. Add a measured or manually
-                  entered value when you have one.
-                </Empty>
-              )}
-            </section>
-            <section className="card">
-              <CardTitle
-                title="Add a measurement"
-                subtitle="Liters only. Nothing here is inferred from your cigarette diary."
-              />
-              <form
-                className="form-stack"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (
-                    await perform(
-                      () =>
-                        saveMeasurement({
-                          type,
-                          value: Number(value),
-                          reference: Number(reference),
-                          unit: "L",
-                          source,
-                          measuredAt: fromLocalDateTime(measuredAt, p.timezone),
-                        }),
-                      "Measurement saved on this device.",
-                    )
-                  )
-                    setValue("");
-                }}
-              >
-                <Field label="Measurement type">
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as typeof type)}
-                  >
-                    <option>Volume</option>
-                    <option>FVC</option>
-                    <option>FEV1</option>
-                  </select>
-                </Field>
-                <div className="form-grid">
-                  <Field label="Entered value (L)">
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      max="10"
-                      step="0.01"
-                      placeholder="e.g. 4.3"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Your comparison reference (L)">
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      max="10"
-                      step="0.01"
-                      value={reference}
-                      onChange={(e) => setReference(e.target.value)}
-                    />
-                  </Field>
-                </div>
-                <Field label="Source">
-                  <input
-                    required
-                    value={source}
-                    maxLength={100}
-                    onChange={(e) => setSource(e.target.value)}
-                    placeholder="Manual entry or test report"
-                  />
-                </Field>
-                <Field label={`Measured at · ${p.timezone}`}>
-                  <input
-                    required
-                    type="datetime-local"
-                    value={measuredAt}
-                    max={localDateTime(new Date().toISOString(), p.timezone)}
-                    onChange={(e) => setMeasuredAt(e.target.value)}
-                  />
-                </Field>
-                <p className="fine-print">
-                  The reference is a number you choose, not a medical normal
-                  value. BAGA does not interpret spirometry.
-                </p>
-                <button className="button primary">
-                  <Plus size={18} />
-                  Save measurement
-                </button>
-              </form>
-            </section>
-          </div>
-        )}
-        {mode === "exposure" && (
-          <>
-            <div className="stats-grid">
-              <section className="card metric-card">
-                <Cigarette size={23} />
-                <span>Total cigarettes recorded</span>
-                <strong>{total.toLocaleString()}</strong>
-                <p>Only the records in your local diary.</p>
-              </section>
-              <section className="card metric-card">
-                <CalendarDays size={23} />
-                <span>Days with records</span>
-                <strong>
-                  {
-                    new Set(
-                      activeLogs(logs).map((log) =>
-                        dayKey(log.smokedAt, p.timezone),
-                      ),
-                    ).size
-                  }
-                </strong>
-                <p>Missing days are not zero-cigarette days.</p>
-              </section>
-              <section className="card metric-card">
-                <Wind size={23} />
-                <span>Recorded pack-year equivalent</span>
-                <strong>{(total / 20 / 365).toFixed(4)}</strong>
-                <p>Recorded cigarettes ÷ 20 ÷ 365.</p>
-              </section>
-            </div>
-            <div className="notice">
-              <Info size={18} />
-              <span>
-                This covers recorded cigarettes only, not lifetime exposure.
-                Pack-years describe exposure, not lung damage or disease risk.
-              </span>
-            </div>
-            <section className="card">
-              <CardTitle
-                title="Your recorded timeline"
-                subtitle="The last 30 days. Blank days may be untracked."
-              />
-              <ActivityChart
-                data={series(logs, dayKey(now, p.timezone), p.timezone, 30)}
-              />
-            </section>
-          </>
-        )}
       </div>
     </>
   );
@@ -2093,11 +1580,6 @@ export function SettingsPage() {
                     "showSpending",
                     "Spending card",
                     "Show peso totals on your overview.",
-                  ],
-                  [
-                    "showLungs",
-                    "Lung preview",
-                    "Show the educational illustration on your overview.",
                   ],
                 ] as const
               ).map(([key, title, desc]) => (

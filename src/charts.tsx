@@ -3,6 +3,37 @@ import type { series } from "./domain";
 import { money, dayTotals, type CigaretteLog } from "./domain";
 
 type Data = ReturnType<typeof series>;
+
+function getChartTicks(max: number, metric: "count" | "spent") {
+  if (metric === "spent") {
+    return [1, 0.75, 0.5, 0.25, 0].map((r) => ({
+      percent: r * 100,
+      label: `₱${Math.round(max * r)}`,
+    }));
+  }
+  if (max <= 5) {
+    const list = [];
+    for (let v = max; v >= 0; v--) {
+      list.push({
+        percent: max > 0 ? (v / max) * 100 : 0,
+        label: `${v}`,
+      });
+    }
+    return list;
+  }
+  const step = Math.ceil(max / 4);
+  const adjustedMax = step * 4;
+  const list = [];
+  for (let i = 4; i >= 0; i--) {
+    const v = step * i;
+    list.push({
+      percent: adjustedMax > 0 ? (v / adjustedMax) * 100 : 0,
+      label: `${v}`,
+    });
+  }
+  return list;
+}
+
 export function ActivityChart({
   data,
   limit,
@@ -29,11 +60,14 @@ export function ActivityChart({
       goal && logs ? dayTotals(logs, date, goal.timezone).count : count;
     return ceiling !== undefined && historicalCount > ceiling;
   };
-  const max = Math.max(
+  const rawMax = Math.max(
     metric === "count" ? limit || 5 : 10,
     ...data.map((d) => d[metric]),
     1,
   );
+  const max =
+    metric === "count" && rawMax > 5 ? Math.ceil(rawMax / 4) * 4 : rawMax;
+  const ticks = getChartTicks(max, metric);
   const hasData = data.some((d) => d[metric] > 0);
   return (
     <div className="activity-chart">
@@ -48,13 +82,13 @@ export function ActivityChart({
           .join("; ")}
       >
         <div className="chart-grid">
-          {[1, 0.75, 0.5, 0.25, 0].map((r) => (
-            <div key={r}>
-              <span>
-                {metric === "spent"
-                  ? `₱${Math.round(max * r)}`
-                  : Math.round(max * r)}
-              </span>
+          {ticks.map((t, idx) => (
+            <div
+              key={`${t.label}-${idx}`}
+              className="chart-grid-line"
+              style={{ bottom: `${t.percent}%` }}
+            >
+              <span>{t.label}</span>
               <i />
             </div>
           ))}
@@ -64,7 +98,7 @@ export function ActivityChart({
             className="limit-line"
             style={{ bottom: `${(limit / max) * 100}%` }}
           >
-            <span>Today’s limit · reference</span>
+            <span className="limit-line-badge">Today’s limit: {limit}</span>
           </div>
         )}
         <div className="bars">

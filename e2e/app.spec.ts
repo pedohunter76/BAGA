@@ -109,25 +109,6 @@ test("smoke-free check-ins recalculate after a later cigarette", async ({
   await expect(smokeFree).toContainText("0");
 });
 
-test("Lung Studio stores real entries separately from illustrative settings", async ({
-  page,
-}) => {
-  await setup(page);
-  await page.goto("/?view=lungs");
-  await page.getByRole("tab", { name: "My measurements" }).click();
-  await expect(page.getByText("No measurements yet.")).toBeVisible();
-  await page.getByLabel("Entered value (L)").fill("4.3");
-  await page.getByRole("button", { name: "Save measurement" }).click();
-  await expect(page.locator(".capacity-number")).toContainText("4.3");
-  await expect(page.locator(".capacity-comparison")).toContainText("86.0%");
-  await page.getByRole("tab", { name: "Educational model" }).click();
-  await page.getByRole("slider").fill("80");
-  await page.getByRole("button", { name: "Save studio preferences" }).click();
-  await page.getByRole("tab", { name: "My measurements" }).click();
-  await expect(page.locator(".capacity-number")).toContainText("4.3");
-  await expect(page.getByText(/not a clinical interpretation/)).toBeVisible();
-});
-
 test("all screens work at mobile widths without horizontal overflow", async ({
   page,
 }) => {
@@ -136,7 +117,6 @@ test("all screens work at mobile widths without horizontal overflow", async ({
   for (const view of [
     "home",
     "log",
-    "lungs",
     "insights",
     "goals",
     "calendar",
@@ -204,7 +184,7 @@ test("storage failures never report a successful save or discard an entry", asyn
 test("core screens and onboarding pass automated WCAG checks", async ({
   page,
 }) => {
-  for (const view of ["home", "lungs", "settings", "calendar"]) {
+  for (const view of ["home", "insights", "settings", "calendar"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.locator("h1")).toBeVisible();
     const result = await new AxeBuilder({ page })
@@ -233,7 +213,7 @@ test("calendar backdating and narrow 320px layout work", async ({ page }) => {
   await expect(dateInput).toHaveValue(`${date}T12:00`);
   await page.getByRole("button", { name: "Save record" }).click();
   await expect(page.locator(".calendar-day-total")).toContainText("1");
-  for (const view of ["home", "lungs", "insights", "settings"]) {
+  for (const view of ["home", "goals", "insights", "settings"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.locator("h1")).toBeVisible();
     expect(
@@ -349,49 +329,6 @@ test("the website opens inside a cross-origin preview frame", async ({
   }
 });
 
-test("craving journal works offline without adding cigarette records", async ({
-  page,
-  context,
-}) => {
-  await setup(page);
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await page.reload();
-  await expect
-    .poll(() =>
-      page.evaluate(() => Boolean(navigator.serviceWorker.controller)),
-    )
-    .toBe(true);
-  await context.setOffline(true);
-  await page.goto("/?view=cravings");
-  await page.getByRole("button", { name: "Log a craving" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("What helped? (optional)").fill("A short walk");
-  await dialog.getByLabel("Outcome").selectOption("passed");
-  await dialog.getByLabel("Notes (optional)").fill("Coffee break");
-  await dialog.getByRole("button", { name: "Save craving" }).click();
-  await expect(dialog).not.toBeVisible();
-  await expect(page.getByText("What helped: A short walk")).toBeVisible();
-  await page.reload();
-  await expect(page.getByText("Coffee break", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit craving" }).click();
-  await page
-    .getByRole("dialog")
-    .getByLabel("Notes (optional)")
-    .fill("Updated context");
-  await page.getByRole("button", { name: "Save craving" }).click();
-  await expect(page.getByRole("dialog")).not.toBeVisible();
-  await expect(
-    page.getByText("Updated context", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Delete craving" }).click();
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(
-    page.getByText("Updated context", { exact: true }),
-  ).toBeVisible();
-  await page.goto("/");
-  await expect(page.getByTestId("today-count")).toContainText("0");
-});
-
 test("validates, reviews, and restores an exported backup", async ({
   page,
 }) => {
@@ -425,7 +362,7 @@ test("phase-two screens remain accessible and fit a narrow viewport", async ({
   page,
 }) => {
   await setup(page);
-  for (const view of ["cravings", "account", "goals", "insights", "settings"]) {
+  for (const view of ["account", "goals", "insights", "settings"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const results = await new AxeBuilder({ page })
@@ -503,10 +440,10 @@ test("small-screen profile and navigation stay comfortable and accessible", asyn
   await more.click();
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "Craving journal" })
+    .getByRole("button", { name: "Brand library" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Notice the urge." }),
+    page.getByRole("heading", { name: "Your cigarette library." }),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goto("/");

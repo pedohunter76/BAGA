@@ -4,14 +4,13 @@ import { goalHistorySchema, goalOnDate, type GoalVersion } from "./goal-schema";
 export type View =
   | "home"
   | "log"
-  | "lungs"
   | "insights"
   | "goals"
   | "calendar"
   | "library"
-  | "cravings"
   | "account"
-  | "settings";
+  | "settings"
+  | "profile";
 export type GoalMode = "reduce" | "quit" | "track";
 export interface Preferences {
   id: "local";

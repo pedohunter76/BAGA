@@ -1,4 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+
+function findChromiumExecutable() {
+  if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE) {
+    return process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+  }
+  const candidates = [
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  ];
+  return candidates.find((p) => existsSync(p));
+}
+
+const chromiumPath = findChromiumExecutable();
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -8,8 +28,7 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",
     launchOptions: {
-      executablePath:
-        process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || "/usr/bin/chromium",
+      ...(chromiumPath ? { executablePath: chromiumPath } : {}),
       args: ["--no-sandbox", "--disable-dev-shm-usage"],
     },
   },

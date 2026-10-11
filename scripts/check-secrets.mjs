@@ -10,15 +10,45 @@ const patterns = [
   /\bAIza[A-Za-z0-9_-]{35}\b/,
   /\b(?:SUPABASE_SERVICE_ROLE_KEY|VAPID_PRIVATE_KEY|BAGA_CRON_SECRET)\s*[:=]\s*["'][A-Za-z0-9_.-]{24,}["']/,
 ];
-const files = process.argv.slice(2).length
-  ? process.argv.slice(2)
-  : execFileSync(
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+function getSourceFiles() {
+  if (process.argv.slice(2).length) return process.argv.slice(2);
+  try {
+    return execFileSync(
       "git",
       ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-      { encoding: "utf8" },
+      { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] },
     )
       .split("\0")
       .filter(Boolean);
+  } catch {
+    const collected = [];
+    function walk(dir) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (
+          [
+            "node_modules",
+            ".git",
+            ".cache",
+            "dist",
+            ".vite",
+            "dist-cloud-test",
+          ].includes(entry.name)
+        )
+          continue;
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.isFile()) collected.push(full);
+      }
+    }
+    walk(".");
+    return collected;
+  }
+}
+
+const files = getSourceFiles();
 let found = 0;
 for (const file of files) {
   if (

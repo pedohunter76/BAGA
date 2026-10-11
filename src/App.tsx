@@ -29,6 +29,7 @@ import {
   Leaf,
   Menu,
   Cloud,
+  User,
 } from "lucide-react";
 import { AppContext } from "./context";
 import { readState, saveLog, setDeleted } from "./db";
@@ -41,16 +42,12 @@ import { NotificationInbox } from "./NotificationInbox";
 import { db } from "./db";
 import { WelcomePage } from "./WelcomePage";
 import { AccountPage } from "./AccountPage";
-import { CravingsPage } from "./CravingsPage";
 import { CloudAutoSync } from "./CloudAutoSync";
 const Dashboard = lazy(() =>
   import("./pages").then((module) => ({ default: module.Dashboard })),
 );
 const History = lazy(() =>
   import("./pages").then((module) => ({ default: module.History })),
-);
-const Lungs = lazy(() =>
-  import("./pages").then((module) => ({ default: module.Lungs })),
 );
 const Insights = lazy(() =>
   import("./pages").then((module) => ({ default: module.Insights })),
@@ -67,21 +64,23 @@ const LibraryPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("./pages").then((module) => ({ default: module.SettingsPage })),
 );
+const ProfilePage = lazy(() =>
+  import("./ProfilePage").then((module) => ({ default: module.ProfilePage })),
+);
 
 const nav = [
   { id: "home", label: "Overview", icon: House },
   { id: "log", label: "My diary", icon: List },
-  { id: "lungs", label: "Lung Studio", icon: Wind },
   { id: "insights", label: "Insights", icon: ChartNoAxesCombined },
   { id: "goals", label: "Goals & streaks", icon: Flag },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "library", label: "Brand library", icon: Library },
-  { id: "cravings", label: "Craving journal", icon: Leaf },
   { id: "account", label: "Account & sync", icon: Cloud },
+  { id: "profile", label: "Profile", icon: User },
 ] as const;
 function viewFromURL(): View {
   const value = new URLSearchParams(window.location.search).get("view");
-  return [...nav.map((n) => n.id), "settings"].includes(value || "")
+  return [...nav.map((n) => n.id), "settings", "profile"].includes(value || "")
     ? (value as View)
     : "home";
 }
@@ -109,6 +108,27 @@ export default function App() {
   } | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallEvent | null>(null);
   const [logging, setLogging] = useState(false);
+  const [avatarColor, setAvatarColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem("baga_profile_avatar_color") || "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    const onAvatarUpdate = () => {
+      try {
+        setAvatarColor(localStorage.getItem("baga_profile_avatar_color") || "");
+      } catch {}
+    };
+    window.addEventListener("baga-avatar-update", onAvatarUpdate);
+    window.addEventListener("storage", onAvatarUpdate);
+    return () => {
+      window.removeEventListener("baga-avatar-update", onAvatarUpdate);
+      window.removeEventListener("storage", onAvatarUpdate);
+    };
+  }, []);
   const [inboxOpen, setInboxOpen] = useState(false);
   const unread =
     useLiveQuery(
@@ -297,14 +317,13 @@ export default function App() {
   const pages = {
     home: Dashboard,
     log: History,
-    lungs: Lungs,
     insights: Insights,
     goals: Goals,
     calendar: Calendar,
     library: LibraryPage,
     settings: SettingsPage,
-    cravings: CravingsPage,
     account: AccountPage,
+    profile: ProfilePage,
   };
   const Page = pages[view];
   const welcome =
@@ -377,18 +396,30 @@ export default function App() {
             <Settings size={19} />
             <span>Settings</span>
           </button>
-          <div className="sidebar-profile">
-            <div className="avatar">
+          <button
+            type="button"
+            className="sidebar-profile-btn"
+            onClick={() => navigate("profile")}
+            aria-label="Open profile"
+          >
+            <div
+              className="avatar"
+              style={
+                avatarColor
+                  ? { backgroundColor: avatarColor, color: "#111614" }
+                  : undefined
+              }
+            >
               {p.name ? p.name[0].toUpperCase() : "Y"}
             </div>
             <div>
               <strong>{p.name || "Your personal space"}</strong>
               <span>
-                Private, by default
+                Local Profile
                 <ShieldCheck size={11} />
               </span>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
       <div className="main-shell">
@@ -444,8 +475,13 @@ export default function App() {
             </button>
             <button
               className="topbar-avatar"
-              aria-label="Open settings"
-              onClick={() => navigate("settings")}
+              aria-label="Open profile"
+              style={
+                avatarColor
+                  ? { backgroundColor: avatarColor, color: "#111614" }
+                  : undefined
+              }
+              onClick={() => navigate("profile")}
             >
               {p.name ? p.name[0].toUpperCase() : "Y"}
             </button>
@@ -559,13 +595,7 @@ export default function App() {
           >
             <Icon size={21} />
             <span>
-              {id === "home"
-                ? "Home"
-                : id === "log"
-                  ? "Diary"
-                  : id === "lungs"
-                    ? "Lungs"
-                    : label}
+              {id === "home" ? "Home" : id === "log" ? "Diary" : label}
             </span>
           </button>
         ))}
