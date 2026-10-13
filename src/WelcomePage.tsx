@@ -36,7 +36,7 @@ export function WelcomePage({ explore }: { explore: () => void }) {
           </button>
           {draft && (
             <p className="draft-notice">
-              Step {draft.step + 1} of 3 saved on this device.{" "}
+              Step {Math.min(2, draft.step + 1)} of 2 saved on this device.{" "}
               <button
                 onClick={() => {
                   void perform(discardDraft, "Setup draft discarded.");

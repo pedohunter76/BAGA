@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowRight,
   Check,
-  ShieldCheck,
   Minus,
   Plus,
   Trash2,
   Cigarette,
   Leaf,
   Activity,
+  Share2,
+  Sparkles,
+  Wind,
 } from "lucide-react";
 import { loadDraft, saveDraft } from "./onboarding";
 import { Modal, Field, Logo } from "./ui";
@@ -20,6 +22,7 @@ import {
   fromLocalDateTime,
   triggers,
   money,
+  dayKey,
 } from "./domain";
 import type { CigaretteLog, Preferences } from "./domain";
 import { savePreferences, saveLog, setDeleted } from "./db";
@@ -83,7 +86,7 @@ export function OnboardingDialog({
       .then((draft) => {
         if (!active) return;
         if (draft && !p.onboarded) {
-          setStep(draft.step);
+          setStep(Math.min(1, draft.step));
           setForm({ ...draft.form, adult: false });
         }
         setDraftLoaded(true);
@@ -119,28 +122,22 @@ export function OnboardingDialog({
   return (
     <Frame
       open
-      title={
-        step === 0
-          ? "A fresh start, at your pace."
-          : step === 1
-            ? "Make BAGA yours."
-            : "Your data. Your choice."
-      }
-      description={`Step ${step + 1} of 3 · No account needed`}
+      title={step === 0 ? "A fresh start, at your pace." : "Make BAGA yours."}
+      description={`Step ${step + 1} of 2 · No account needed`}
       onClose={() => {
         if (!busy) close();
       }}
     >
       {draftError && <p role="alert">{draftError}</p>}
       <div className="step-progress">
-        {[0, 1, 2].map((s) => (
+        {[0, 1].map((s) => (
           <i key={s} className={s <= step ? "active" : ""} />
         ))}
       </div>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          if (step < 2) {
+          if (step < 1) {
             setStep(step + 1);
             return;
           }
@@ -327,40 +324,6 @@ export function OnboardingDialog({
             )}
           </div>
         )}
-        {step === 2 && (
-          <>
-            <div className="privacy-box">
-              <ShieldCheck size={30} />
-              <h3>Private by default.</h3>
-              <p>
-                Your diary and measurements are stored in this browser on this
-                device. Optional cloud sync is available after setup, only with
-                your consent. Export a backup when you need one.
-              </p>
-              <p>
-                Local storage is not app-encrypted. Other people using this
-                browser may access it; clearing browser data can remove your
-                diary.
-              </p>
-            </div>
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                required
-                checked={form.adult}
-                onChange={(e) => update("adult", e.target.checked)}
-              />
-              <span>
-                I am 18 or older and understand the local-storage privacy
-                notice.
-              </span>
-            </label>
-            <p className="fine-print">
-              The lung illustration is educational. It cannot diagnose disease
-              or determine lung capacity from cigarette counts.
-            </p>
-          </>
-        )}
         <div className="modal-actions">
           {step > 0 && (
             <button
@@ -372,7 +335,7 @@ export function OnboardingDialog({
             </button>
           )}
           <button className="button primary" disabled={busy}>
-            {busy ? "Saving…" : step === 2 ? "Start my journey" : "Continue"}
+            {busy ? "Saving…" : step === 1 ? "Start my journey" : "Continue"}
             <ArrowRight size={18} />
           </button>
         </div>
@@ -428,6 +391,11 @@ export function LogDialog({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+            try {
+              navigator.vibrate(20);
+            } catch {}
+          }
           setBusy(true);
           let saved: CigaretteLog | undefined;
           const ok = await perform(
@@ -654,6 +622,11 @@ export function QuickPriceDialog({ close }: { close: () => void }) {
   const favorite = variants.find((v) => v.id === variantId) || variants[0];
   const totalCost = (Number(price) || 0) * quantity;
 
+  const basePrice = Math.round(perStick(p) * 100) / 100;
+  const quickPrices = Array.from(
+    new Set([basePrice, 7, 8, 9, 10, 12, 15].filter((v) => v > 0)),
+  ).sort((a, b) => a - b);
+
   const quickStores = [
     "Sari-sari store",
     "7-Eleven",
@@ -671,6 +644,11 @@ export function QuickPriceDialog({ close }: { close: () => void }) {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+            try {
+              navigator.vibrate(20);
+            } catch {}
+          }
           setBusy(true);
           let saved: CigaretteLog | undefined;
           const ok = await perform(
@@ -714,7 +692,7 @@ export function QuickPriceDialog({ close }: { close: () => void }) {
 
           <Field
             label="Price per stick (PHP)"
-            hint="Enter what you paid per stick at this store."
+            hint="Enter stick price or pick a quick preset."
           >
             <input
               type="number"
@@ -726,6 +704,32 @@ export function QuickPriceDialog({ close }: { close: () => void }) {
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
             />
+            <div
+              className="quick-price-chips"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                marginTop: "8px",
+              }}
+            >
+              {quickPrices.map((qp) => (
+                <button
+                  key={qp}
+                  type="button"
+                  className={`pill ${Number(price) === qp ? "active" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    padding: "4px 10px",
+                    fontWeight: 600,
+                  }}
+                  onClick={() => setPrice(qp)}
+                >
+                  ₱{qp.toFixed(2)}
+                </button>
+              ))}
+            </div>
           </Field>
 
           <div className="quantity-control">
@@ -815,6 +819,129 @@ export function QuickPriceDialog({ close }: { close: () => void }) {
           </button>
         </div>
       </form>
+    </Modal>
+  );
+}
+
+export function ShareProgressDialog({
+  close,
+  stats,
+}: {
+  close: () => void;
+  stats?: {
+    count: number;
+    smokeFree: number;
+    withinLimit: number;
+    loggingStreak: number;
+  };
+}) {
+  const { preferences: p, now, toast } = useApp();
+  const perPrice = perStick(p);
+  const count = stats?.count ?? 0;
+  const smokeFree = stats?.smokeFree ?? 0;
+  const withinLimit = stats?.withinLimit ?? 0;
+  const loggingStreak = stats?.loggingStreak ?? 0;
+
+  const avoidedToday = p.baseline > 0 ? Math.max(0, p.baseline - count) : 0;
+  const savedMoney = avoidedToday * perPrice;
+
+  const streakLabel =
+    smokeFree > 0
+      ? `${smokeFree} days smoke-free`
+      : p.goalMode !== "track" && withinLimit > 0
+        ? `${withinLimit} days within limit`
+        : `${loggingStreak} days tracking`;
+
+  const summary = [
+    `🫁 BAGA Progress Update`,
+    p.name ? `User: ${p.name}` : null,
+    `🔥 Streak: ${streakLabel}`,
+    `📊 Today: ${count} cigarettes${p.goalMode !== "track" ? ` (limit: ${p.dailyLimit})` : ""}`,
+    savedMoney > 0 ? `💰 Saved today: ₱${savedMoney.toFixed(2)}` : null,
+    `📅 ${dayKey(now, p.timezone)}`,
+    `Track your journey privately with BAGA.`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  async function handleShare() {
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: "My BAGA Progress",
+          text: summary,
+        });
+        toast("Shared successfully.");
+        return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    }
+    await copyText();
+  }
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast("Progress summary copied to clipboard!");
+    } catch {
+      toast("Could not copy to clipboard.");
+    }
+  }
+
+  return (
+    <Modal
+      open
+      title="Share your journey"
+      description="Celebrate how far you've come. Safe to share with friends or family."
+      onClose={close}
+    >
+      <div className="share-preview-card">
+        <div className="share-card-header">
+          <div className="share-logo">
+            <Wind size={20} />
+            <span>BAGA</span>
+          </div>
+          <span className="share-date">{dayKey(now, p.timezone)}</span>
+        </div>
+        <div className="share-card-body">
+          {p.name && <h3 className="share-name">{p.name}</h3>}
+          <div className="share-hero-badge">
+            <Sparkles size={22} />
+            <strong>{streakLabel}</strong>
+          </div>
+          <div className="share-stats-grid">
+            <div className="share-stat">
+              <span>Today</span>
+              <strong>{count} sticks</strong>
+            </div>
+            {p.goalMode !== "track" && (
+              <div className="share-stat">
+                <span>Daily limit</span>
+                <strong>{p.dailyLimit} sticks</strong>
+              </div>
+            )}
+            {savedMoney > 0 && (
+              <div className="share-stat highlight">
+                <span>Saved today</span>
+                <strong>₱{savedMoney.toFixed(0)}</strong>
+              </div>
+            )}
+          </div>
+          <p className="share-card-quote">
+            "One day at a time. Every breath matters."
+          </p>
+        </div>
+      </div>
+      <div className="modal-actions" style={{ marginTop: "16px" }}>
+        <button type="button" className="button secondary" onClick={copyText}>
+          Copy text summary
+        </button>
+        <button type="button" className="button primary" onClick={handleShare}>
+          <Share2 size={18} />
+          Share progress
+        </button>
+      </div>
     </Modal>
   );
 }

@@ -5081,3 +5081,199 @@ body:has(.modal) .toast {
   }
 }
 
+/* ==========================================================================
+   Enhancements: Smoke-free live ticker, Money saved banner, Share modal, Toast countdown
+   ========================================================================== */
+
+/* Toast countdown bar */
+.toast.has-undo {
+  position: fixed;
+  overflow: hidden;
+  padding-bottom: 14px;
+}
+
+.toast-countdown-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--lime);
+  width: 100%;
+  animation: toastCountdown 10s linear forwards;
+}
+
+@keyframes toastCountdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Smoke-free timer badge */
+.smoke-free-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lime);
+  background: rgba(186, 230, 114, 0.12);
+  border: 1px solid rgba(186, 230, 114, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* Money saved banner */
+.money-saved-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(186, 230, 114, 0.1) 0%, rgba(30, 40, 26, 0.7) 100%);
+  border: 1px solid rgba(186, 230, 114, 0.3);
+  border-radius: 16px;
+}
+
+.money-saved-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.money-saved-text strong {
+  display: block;
+  font-size: 16px;
+  color: var(--lime);
+  margin: 2px 0;
+}
+
+.money-saved-text p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Quick price tags */
+.quick-price-chips button.pill.active {
+  background: var(--lime);
+  color: #121810;
+  border-color: var(--lime);
+  font-weight: 700;
+}
+
+/* Share progress card */
+.share-preview-card {
+  background: radial-gradient(circle at 50% 0%, rgba(186, 230, 114, 0.15) 0%, rgba(20, 26, 18, 0.95) 100%);
+  border: 1px solid rgba(186, 230, 114, 0.3);
+  border-radius: 18px;
+  padding: 24px;
+  margin-top: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.share-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.share-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--lime);
+  font-size: 14px;
+}
+
+.share-date {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.share-card-body {
+  text-align: center;
+}
+
+.share-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.share-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(186, 230, 114, 0.15);
+  border: 1px solid rgba(186, 230, 114, 0.4);
+  padding: 8px 18px;
+  border-radius: 999px;
+  color: var(--lime);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.share-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.share-stat {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 8px;
+}
+
+.share-stat span {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.share-stat strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.share-stat.highlight strong {
+  color: var(--lime);
+}
+
+.share-card-quote {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+@media (max-width: 600px) {
+  .money-saved-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .money-saved-banner .button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

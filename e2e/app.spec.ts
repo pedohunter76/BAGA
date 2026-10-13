@@ -10,8 +10,6 @@ async function setup(page: Page, url = "/") {
   await dialog.getByRole("button", { name: "Continue" }).click();
   await dialog.getByLabel("What should we call you?").fill("Alex");
   await dialog.getByLabel("Price (PHP)").fill("12");
-  await dialog.getByRole("button", { name: "Continue" }).click();
-  await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Start my journey" }).click();
   await expect(
     page.getByRole("heading", { name: "One day at a time, Alex." }),
@@ -396,10 +394,6 @@ test("welcome profile keeps drafts, requires consent, and returns users to their
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("What should we call you?")).toHaveValue("Sam");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Start my journey" }).click();
-  await expect(page.locator(".profile-page")).toBeVisible();
-  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Start my journey" }).click();
   await expect(
     page.getByRole("heading", { name: "One day at a time, Sam." }),
@@ -500,8 +494,6 @@ test("profile drafts survive reload, require fresh consent, and can be discarded
     "Returning draft",
   );
   await expect(page.getByLabel("Price (PHP)")).toHaveValue("15");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByRole("button", { name: "Cancel setup" }).click();
   await page.getByRole("button", { name: "Discard saved setup" }).click();
   await expect(

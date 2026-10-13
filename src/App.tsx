@@ -243,6 +243,11 @@ export default function App() {
       setDialog("customPrice");
       return;
     }
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(20);
+      } catch {}
+    }
     setLogging(true);
     const variant = [...catalog, ...state.customVariants].find(
       (v) => v.id === p.favoriteId,
@@ -657,7 +662,7 @@ export default function App() {
       >
         {notification && (
           <div
-            className={`toast ${notification.error ? "error" : ""}`}
+            className={`toast ${notification.error ? "error" : ""} ${notification.undo ? "has-undo" : ""}`}
             role={notification.error ? "alert" : "status"}
           >
             <span className="toast-icon">
@@ -686,6 +691,7 @@ export default function App() {
             >
               <X size={16} />
             </button>
+            {notification.undo && <div className="toast-countdown-bar" />}
           </div>
         )}
       </div>

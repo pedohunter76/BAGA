@@ -25,7 +25,9 @@ import {
   Sparkles,
   CalendarDays,
   CheckCheck,
+  Share2,
 } from "lucide-react";
+import { ShareProgressDialog } from "./dialogs";
 import { useApp } from "./context";
 import { exportDiagnostics } from "./diagnostics";
 import { goalOnDate } from "./goals";
@@ -53,6 +55,22 @@ import type { CigaretteLog, Preferences } from "./domain";
 import { PageTitle, CardTitle, Empty, TextLink, Field, Modal } from "./ui";
 import { ActivityChart } from "./charts";
 import { CigaretteTracker } from "./CigaretteTracker";
+
+function formatSmokeFree(elapsedMinutes: number) {
+  if (elapsedMinutes < 1) return "Just smoked";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m smoke-free`;
+  const hours = Math.floor(elapsedMinutes / 60);
+  const mins = elapsedMinutes % 60;
+  if (hours < 24)
+    return mins > 0
+      ? `${hours}h ${mins}m smoke-free`
+      : `${hours}h smoke-free`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours > 0
+    ? `${days}d ${remHours}h smoke-free`
+    : `${days}d smoke-free`;
+}
 
 function useStats() {
   const { preferences: p, logs, checkins, now } = useApp();
@@ -231,6 +249,7 @@ export function Dashboard() {
     openLog,
     openOnboarding,
   } = useApp();
+  const [shareOpen, setShareOpen] = useState(false);
   const s = useStats();
   const favorite = [...catalog, ...useApp().customVariants].find(
     (v) => v.id === p.favoriteId,
@@ -256,6 +275,8 @@ export function Dashboard() {
         Math.floor((now.getTime() - Date.parse(latest.smokedAt)) / 60_000),
       )
     : 0;
+  const avoidedToday = p.baseline > 0 ? Math.max(0, p.baseline - s.count) : 0;
+  const moneySavedToday = avoidedToday * perStick(p);
   return (
     <>
       <PageTitle
@@ -308,6 +329,10 @@ export function Dashboard() {
                         ? "Your goal is a smoke-free day"
                         : "your chosen daily limit"}
                 </span>
+                <span className="smoke-free-timer">
+                  <Clock3 size={12} />
+                  {latest ? formatSmokeFree(elapsed) : "Clean slate · 0 logged"}
+                </span>
               </div>
             </div>
             <CigaretteTracker
@@ -340,6 +365,30 @@ export function Dashboard() {
           </p>
         </section>
       </div>
+      {p.onboarded && p.baseline > 0 && avoidedToday > 0 && (
+        <section className="card money-saved-banner">
+          <div className="money-saved-left">
+            <span className="stat-icon green">
+              <Wallet size={22} />
+            </span>
+            <div className="money-saved-text">
+              <span className="small-caps">DAILY SAVINGS</span>
+              <strong>{money(moneySavedToday)} saved today</strong>
+              <p>
+                {avoidedToday} cigarette{avoidedToday > 1 ? "s" : ""} avoided compared to your {p.baseline}/day baseline.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="button secondary compact"
+            onClick={() => setShareOpen(true)}
+          >
+            <Share2 size={16} />
+            Share
+          </button>
+        </section>
+      )}
       <div className={`stats-grid ${!p.showSpending ? "two" : ""}`}>
         <section className="card stat-card">
           <span className="stat-icon green">
@@ -459,6 +508,12 @@ export function Dashboard() {
         </p>
         <span>ONE DAY AT A TIME</span>
       </div>
+      {shareOpen && (
+        <ShareProgressDialog
+          close={() => setShareOpen(false)}
+          stats={s}
+        />
+      )}
     </>
   );
 }
@@ -797,6 +852,7 @@ export function Goals() {
     openOnboarding,
     now,
   } = useApp();
+  const [shareOpen, setShareOpen] = useState(false);
   const s = useStats();
   const [form, setForm] = useState({
     mode: p.goalMode,
@@ -826,6 +882,15 @@ export function Goals() {
         eyebrow="PROGRESS AT YOUR PACE"
         title="Small steps. Your steps."
         description="A goal should support you, never put pressure on you."
+        action={
+          <button
+            className="button secondary compact"
+            onClick={() => setShareOpen(true)}
+          >
+            <Share2 size={16} />
+            Share progress
+          </button>
+        }
       />
       <div className="stats-grid">
         <section className="card streak-card">
@@ -1075,6 +1140,12 @@ export function Goals() {
           current chosen limit.
         </span>
       </div>
+      {shareOpen && (
+        <ShareProgressDialog
+          close={() => setShareOpen(false)}
+          stats={s}
+        />
+      )}
     </>
   );
 }
