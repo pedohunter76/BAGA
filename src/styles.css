@@ -2427,15 +2427,29 @@ input[type="range"] {
   color: var(--faint);
 }
 .calendar-day.smoke-free {
-  background: #293624;
+  background: #203522;
   color: var(--lime);
+  border-color: rgba(94, 219, 137, 0.3);
+}
+.calendar-day.smoke-free svg {
+  color: var(--lime);
+}
+.calendar-day.within-limit {
+  background: #2c291d;
+  border-color: rgba(230, 162, 60, 0.35);
+}
+.calendar-day.within-limit > span {
+  color: #e6a23c;
 }
 .calendar-day.has-records {
   background: #2b2e25;
 }
 .calendar-day.above-limit {
-  background: #352927;
-  border-color: #60483e;
+  background: #352322;
+  border-color: rgba(224, 108, 85, 0.4);
+}
+.calendar-day.above-limit > span {
+  color: #e06c55;
 }
 .calendar-day.selected {
   border-color: var(--lime);
@@ -2456,6 +2470,12 @@ input[type="range"] {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.legend-dot.amber {
+  background: #e6a23c;
+}
+.legend-dot.coral {
+  background: #e06c55;
 }
 .calendar-detail .card-heading {
   margin-bottom: 12px;
@@ -2659,13 +2679,18 @@ input[type="range"] {
 [data-theme="light"] .pill.subdued {
   background: none;
 }
-[data-theme="light"] .calendar-day.smoke-free,
-[data-theme="light"] .calendar-day.has-records {
+[data-theme="light"] .calendar-day.smoke-free {
   background: #e4ecd9;
+  border-color: #aed581;
+}
+[data-theme="light"] .calendar-day.within-limit,
+[data-theme="light"] .calendar-day.has-records {
+  background: #fdf6e6;
+  border-color: #ffe082;
 }
 [data-theme="light"] .calendar-day.above-limit {
-  background: #f2e3d9;
-  border-color: #d5bcaa;
+  background: #fbe9e7;
+  border-color: #ffab91;
 }
 [data-theme="light"] .brand-monogram {
   background: #e5edda;
@@ -5316,4 +5341,467 @@ body:has(.modal) .toast {
   color: var(--muted);
   margin: 8px 0 0;
 }
+
+/* ==========================================================================
+   Urge Surfing & Craving Journal
+   ========================================================================== */
+.urge-surf-banner {
+  margin-top: 14px;
+  width: 100%;
+}
+
+.urge-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 12px);
+  color: var(--text, #fff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.urge-btn:hover {
+  background: var(--surface-3, rgba(255, 255, 255, 0.09));
+  border-color: var(--lime);
+  transform: translateY(-1px);
+}
+
+.urge-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(94, 219, 137, 0.15);
+  color: var(--lime);
+  flex-shrink: 0;
+}
+
+.urge-btn-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.urge-btn-copy strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.urge-btn-copy small {
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.urge-btn-arrow {
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.urge-btn:hover .urge-btn-arrow {
+  transform: translateX(3px);
+  color: var(--lime);
+}
+
+/* Craving Journal */
+.craving-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.craving-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.craving-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.craving-title strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.craving-row .muted {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.craving-row .preserve-lines {
+  white-space: pre-line;
+  font-size: 0.84rem;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.craving-row .row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Calendar Heatmap Inspection Panel Enhancements
+   ========================================================================== */
+.calendar-day-badge-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.cal-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.cal-status-pill.green {
+  background: rgba(94, 219, 137, 0.15);
+  color: var(--lime);
+  border: 1px solid rgba(94, 219, 137, 0.3);
+}
+
+.cal-status-pill.amber {
+  background: rgba(230, 162, 60, 0.15);
+  color: #e6a23c;
+  border: 1px solid rgba(230, 162, 60, 0.3);
+}
+
+.cal-status-pill.red {
+  background: rgba(224, 108, 85, 0.15);
+  color: #e06c55;
+  border: 1px solid rgba(224, 108, 85, 0.3);
+}
+
+.cal-status-pill.muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.calendar-cravings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.calendar-subheading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.calendar-craving-item {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-craving-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar-craving-top strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.calendar-craving-top .pill {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+.calendar-craving-item small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.calendar-craving-note {
+  font-size: 11px;
+  color: var(--text);
+  margin: 2px 0 0;
+}
+
+/* ==========================================================================
+   Insights: Day of Week & Time of Day Distribution
+   ========================================================================== */
+.routine-insights-grid {
+  margin-top: 24px;
+}
+
+.routine-peak-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(230, 162, 60, 0.1);
+  border: 1px solid rgba(230, 162, 60, 0.25);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+
+.routine-peak-banner svg {
+  color: #e6a23c;
+  flex-shrink: 0;
+}
+
+.routine-peak-banner strong {
+  color: #e6a23c;
+  font-weight: 600;
+}
+
+.weekday-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  align-items: flex-end;
+  min-height: 160px;
+  padding-top: 10px;
+}
+
+.weekday-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.weekday-val {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.weekday-col.is-peak .weekday-val {
+  color: #e6a23c;
+}
+
+.weekday-bar-track {
+  width: 100%;
+  max-width: 28px;
+  flex: 1;
+  min-height: 90px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.weekday-bar-track > i {
+  width: 100%;
+  background: var(--surface-alt, #3e4438);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+.weekday-col.is-peak .weekday-bar-track > i {
+  background: linear-gradient(180deg, #e6a23c 0%, #d87a2d 100%);
+  box-shadow: 0 0 10px rgba(230, 162, 60, 0.3);
+}
+
+.weekday-label {
+  font-size: 11px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.weekday-col.is-peak .weekday-label {
+  color: #e6a23c;
+  font-weight: 700;
+}
+
+.weekday-sub {
+  font-size: 9px;
+  color: var(--faint);
+  text-align: center;
+}
+
+/* Time of day */
+.time-windows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.time-window-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.time-window-item.is-peak {
+  border-color: rgba(94, 219, 137, 0.4);
+  background: rgba(94, 219, 137, 0.05);
+}
+
+.time-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.time-window-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-window-icon {
+  font-size: 16px;
+}
+
+.time-window-title strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.time-window-title small {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.time-window-metrics {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.time-window-metrics strong {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.time-window-item.is-peak .time-window-metrics strong {
+  color: var(--lime);
+}
+
+.time-window-metrics span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.time-window-item .progress-track > i {
+  background: var(--lime);
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .urge-btn {
+  background: #fdfdfc;
+  border-color: #e0e4da;
+}
+[data-theme="light"] .urge-btn:hover {
+  background: #f6f8f2;
+}
+[data-theme="light"] .craving-row {
+  background: #fdfdfc;
+  border-color: #e0e4da;
+}
+[data-theme="light"] .routine-peak-banner {
+  background: #fff8eb;
+  border-color: #ffe0a3;
+  color: #8c5300;
+}
+[data-theme="light"] .routine-peak-banner strong {
+  color: #b36b00;
+}
+[data-theme="light"] .routine-peak-banner svg {
+  color: #b36b00;
+}
+[data-theme="light"] .time-window-item {
+  background: #fdfdfc;
+  border-color: #e4e8de;
+}
+[data-theme="light"] .time-window-item.is-peak {
+  border-color: #aed581;
+  background: #f4faeb;
+}
+[data-theme="light"] .calendar-craving-item {
+  background: #fcfcfb;
+  border-color: #e5e8de;
+}
+[data-theme="light"] .weekday-bar-track {
+  background: #edf1e6;
+}
+[data-theme="light"] .weekday-bar-track > i {
+  background: #c5d2b7;
+}
+
+@media (max-width: 640px) {
+  .weekday-bars {
+    gap: 4px;
+  }
+  .weekday-bar-track {
+    max-width: 20px;
+  }
+  .weekday-sub {
+    font-size: 8px;
+  }
+  .time-window-title small {
+    display: none;
+  }
+}
+
 

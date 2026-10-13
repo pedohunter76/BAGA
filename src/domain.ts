@@ -4,6 +4,7 @@ import { goalHistorySchema, goalOnDate, type GoalVersion } from "./goal-schema";
 export type View =
   | "home"
   | "log"
+  | "cravings"
   | "insights"
   | "goals"
   | "calendar"

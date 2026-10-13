@@ -67,10 +67,14 @@ const SettingsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import("./ProfilePage").then((module) => ({ default: module.ProfilePage })),
 );
+const CravingsPage = lazy(() =>
+  import("./CravingsPage").then((module) => ({ default: module.CravingsPage })),
+);
 
 const nav = [
   { id: "home", label: "Overview", icon: House },
   { id: "log", label: "My diary", icon: List },
+  { id: "cravings", label: "Craving journal", icon: Wind },
   { id: "insights", label: "Insights", icon: ChartNoAxesCombined },
   { id: "goals", label: "Goals & streaks", icon: Flag },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
@@ -334,6 +338,7 @@ export default function App() {
   const pages = {
     home: Dashboard,
     log: History,
+    cravings: CravingsPage,
     insights: Insights,
     goals: Goals,
     calendar: Calendar,

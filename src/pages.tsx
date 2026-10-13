@@ -392,6 +392,22 @@ export function Dashboard() {
               : "Set up your favorite for one-tap logging"}
             <span>Undo after a quick log</span>
           </p>
+          <div className="urge-surf-banner">
+            <button
+              type="button"
+              className="urge-btn"
+              onClick={() => navigate("cravings")}
+            >
+              <span className="urge-btn-icon">
+                <Wind size={16} />
+              </span>
+              <span className="urge-btn-copy">
+                <strong>Having a craving? Notice the urge</strong>
+                <small>Log triggers & ride it out without adding a cigarette</small>
+              </span>
+              <ChevronRight size={16} className="urge-btn-arrow" />
+            </button>
+          </div>
         </section>
       </div>
       <div className={`stats-grid ${!p.showSpending ? "two" : ""}`}>
@@ -704,6 +720,94 @@ export function Insights() {
           };
         })
       : data;
+
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+  const weekdayNames = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ] as const;
+  const weekdayStats = weekdays.map((abbr, index) => {
+    const matchingDays = data.filter((d) => {
+      const idx = (new Date(`${d.date}T12:00:00Z`).getUTCDay() + 6) % 7;
+      return idx === index;
+    });
+    const occurrences = matchingDays.length;
+    const dayCount = matchingDays.reduce((sum, d) => sum + d.count, 0);
+    const daySpent = matchingDays.reduce((sum, d) => sum + d.spent, 0);
+    const average = occurrences > 0 ? dayCount / occurrences : 0;
+    return {
+      abbr,
+      fullName: weekdayNames[index],
+      occurrences,
+      count: dayCount,
+      spent: daySpent,
+      average,
+    };
+  });
+  const maxWeekdayAvg = Math.max(...weekdayStats.map((w) => w.average), 0);
+  const peakWeekday =
+    maxWeekdayAvg > 0
+      ? weekdayStats.find((w) => w.average === maxWeekdayAvg)
+      : null;
+
+  const hourFormat = new Intl.DateTimeFormat("en", {
+    timeZone: p.timezone,
+    hour: "numeric",
+    hourCycle: "h23",
+  });
+  const timeWindows = [
+    {
+      id: "morning",
+      label: "Morning",
+      range: "06:00 – 11:59",
+      hours: [6, 7, 8, 9, 10, 11],
+      icon: "🌅",
+    },
+    {
+      id: "afternoon",
+      label: "Afternoon",
+      range: "12:00 – 17:59",
+      hours: [12, 13, 14, 15, 16, 17],
+      icon: "☀️",
+    },
+    {
+      id: "evening",
+      label: "Evening",
+      range: "18:00 – 21:59",
+      hours: [18, 19, 20, 21],
+      icon: "🌙",
+    },
+    {
+      id: "night",
+      label: "Night",
+      range: "22:00 – 05:59",
+      hours: [22, 23, 0, 1, 2, 3, 4, 5],
+      icon: "🌌",
+    },
+  ];
+  const windowStats = timeWindows.map((win) => {
+    const winCount = relevant.reduce((sum, log) => {
+      const h = Number(hourFormat.format(new Date(log.smokedAt)));
+      return win.hours.includes(h) ? sum + log.quantity : sum;
+    }, 0);
+    const pct = count > 0 ? (winCount / count) * 100 : 0;
+    return {
+      ...win,
+      count: winCount,
+      percentage: pct,
+    };
+  });
+  const maxWindowCount = Math.max(...windowStats.map((w) => w.count), 0);
+  const peakWindow =
+    maxWindowCount > 0
+      ? windowStats.find((w) => w.count === maxWindowCount)
+      : null;
+
   return (
     <>
       <PageTitle
@@ -839,6 +943,110 @@ export function Insights() {
             <Empty title="A little context helps.">
               Add a trigger when logging to understand the moments behind your
               habits.
+            </Empty>
+          )}
+        </section>
+      </div>
+      <div className="two-column routine-insights-grid">
+        <section className="card">
+          <CardTitle
+            title="Day of the week routine"
+            subtitle={`Average cigarettes per day over ${period} days · ${p.timezone}`}
+          />
+          {count > 0 ? (
+            <div className="weekday-routine-container">
+              {peakWeekday && (
+                <div className="routine-peak-banner">
+                  <Flame size={15} />
+                  <span>
+                    Peak day: <strong>{peakWeekday.fullName}</strong> averaging{" "}
+                    <strong>{peakWeekday.average.toFixed(1)}</strong> sticks
+                  </span>
+                </div>
+              )}
+              <div
+                className="weekday-bars"
+                role="img"
+                aria-label="Day of week distribution"
+              >
+                {weekdayStats.map((w) => {
+                  const isPeak = peakWeekday?.abbr === w.abbr && w.count > 0;
+                  const barHeight =
+                    maxWeekdayAvg > 0
+                      ? Math.max(8, (w.average / maxWeekdayAvg) * 100)
+                      : 8;
+                  return (
+                    <div
+                      key={w.abbr}
+                      className={`weekday-col ${isPeak ? "is-peak" : ""}`}
+                    >
+                      <span className="weekday-val">
+                        {w.average > 0 ? w.average.toFixed(1) : "0"}
+                      </span>
+                      <div className="weekday-bar-track">
+                        <i style={{ height: `${barHeight}%` }} />
+                      </div>
+                      <strong className="weekday-label">{w.abbr}</strong>
+                      <small className="weekday-sub">{w.count} sticks</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <Empty title="Habit patterns over the week">
+              Log your cigarettes to see which days of the week are your heaviest.
+            </Empty>
+          )}
+        </section>
+
+        <section className="card">
+          <CardTitle
+            title="Time of day distribution"
+            subtitle={`Routine windows across 24 hours · ${period} days`}
+          />
+          {count > 0 ? (
+            <div className="time-windows-container">
+              {peakWindow && (
+                <div className="routine-peak-banner">
+                  <Clock3 size={15} />
+                  <span>
+                    Primary window: <strong>{peakWindow.label}</strong> (
+                    <strong>{Math.round(peakWindow.percentage)}%</strong> of all
+                    cigarettes)
+                  </span>
+                </div>
+              )}
+              <div className="time-windows-list">
+                {windowStats.map((win) => {
+                  const isPeak = peakWindow?.id === win.id && win.count > 0;
+                  return (
+                    <div
+                      key={win.id}
+                      className={`time-window-item ${isPeak ? "is-peak" : ""}`}
+                    >
+                      <div className="time-window-header">
+                        <div className="time-window-title">
+                          <span className="time-window-icon">{win.icon}</span>
+                          <strong>{win.label}</strong>
+                          <small>{win.range}</small>
+                        </div>
+                        <div className="time-window-metrics">
+                          <strong>{win.count} sticks</strong>
+                          <span>{Math.round(win.percentage)}%</span>
+                        </div>
+                      </div>
+                      <div className="progress-track">
+                        <i style={{ width: `${win.percentage}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <Empty title="Routine windows">
+              Time of day patterns will emerge as you log cigarettes.
             </Empty>
           )}
         </section>
@@ -1156,7 +1364,7 @@ export function Goals() {
 }
 
 export function Calendar() {
-  const { logs, checkins, preferences: p, now, openLog } = useApp();
+  const { logs, checkins, preferences: p, now, openLog, cravings, navigate } = useApp();
   const today = dayKey(now, p.timezone);
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
@@ -1166,6 +1374,13 @@ export function Calendar() {
     Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
   ).getUTCDate();
   const totals = dayTotals(logs, selected, p.timezone);
+
+  const selectedGoal = goalOnDate(p.goalHistory ?? [], selected);
+  const selectedLimit = selectedGoal !== undefined ? selectedGoal.dailyLimit : p.dailyLimit;
+  const selectedMode = selectedGoal !== undefined ? selectedGoal.goalMode : p.goalMode;
+  const selectedConfirmed = checkins.some((c) => c.date === selected);
+  const selectedCravings = cravings.filter((c) => dayKey(c.at, p.timezone) === selected);
+
   function moveMonth(n: number) {
     const next = new Date(first);
     next.setUTCMonth(next.getUTCMonth() + n);
@@ -1176,7 +1391,7 @@ export function Calendar() {
       <PageTitle
         eyebrow="YOUR DAYS, IN COLOR"
         title="Your smoking calendar."
-        description="Recorded days, confirmed days, and the spaces in between."
+        description="Recorded days, confirmed smoke-free days, and daily limits in a visual habit heatmap."
       />
       <div className="calendar-layout">
         <section className="card">
@@ -1227,15 +1442,30 @@ export function Calendar() {
               const date = `${month}-${String(i + 1).padStart(2, "0")}`;
               const n = dayTotals(logs, date, p.timezone).count;
               const confirmed = checkins.some((c) => c.date === date);
+              const dayGoal = goalOnDate(p.goalHistory ?? [], date);
+              const limit = dayGoal !== undefined ? dayGoal.dailyLimit : p.dailyLimit;
+              const goalMode = dayGoal !== undefined ? dayGoal.goalMode : p.goalMode;
+              const isSmokeFree = confirmed && n === 0;
+              const isOverLimit = goalMode !== "track" && n > limit;
+              const isWithinLimit = n > 0 && (goalMode === "track" || n <= limit);
+              const statusClass = isSmokeFree
+                ? "smoke-free"
+                : isOverLimit
+                  ? "above-limit"
+                  : isWithinLimit
+                    ? "within-limit has-records"
+                    : n > 0
+                      ? "has-records"
+                      : "untracked";
               return (
                 <button
                   key={date}
-                  className={`calendar-day ${selected === date ? "selected" : ""} ${date === today ? "is-today" : ""} ${confirmed && n === 0 ? "smoke-free" : goalOnDate(p.goalHistory ?? [], date)?.goalMode !== "track" && goalOnDate(p.goalHistory ?? [], date) !== undefined && dayTotals(logs, date, goalOnDate(p.goalHistory ?? [], date)!.timezone).count > goalOnDate(p.goalHistory ?? [], date)!.dailyLimit ? "above-limit" : n ? "has-records" : ""}`}
+                  className={`calendar-day ${selected === date ? "selected" : ""} ${date === today ? "is-today" : ""} ${statusClass}`}
                   onClick={() => setSelected(date)}
                   aria-label={`${date}, ${n} cigarettes, ${confirmed ? "checked in" : "not checked in"}`}
                 >
                   <strong>{i + 1}</strong>
-                  {confirmed && n === 0 ? (
+                  {isSmokeFree ? (
                     <Leaf size={18} />
                   ) : n ? (
                     <span>
@@ -1255,8 +1485,12 @@ export function Calendar() {
               Confirmed smoke-free
             </span>
             <span>
-              <i className="legend-dot peach" />
-              Records
+              <i className="legend-dot amber" />
+              Within limit
+            </span>
+            <span>
+              <i className="legend-dot coral" />
+              Above limit
             </span>
             <span>— Untracked</span>
           </div>
@@ -1269,13 +1503,32 @@ export function Calendar() {
               timeZone: "UTC",
             })}
             subtitle={
-              checkins.some((c) => c.date === selected)
+              selectedConfirmed
                 ? "Daily check-in completed"
                 : selected > today
                   ? "This day hasn’t arrived yet."
                   : "Check-in not completed"
             }
           />
+          <div className="calendar-day-badge-wrap">
+            {selected > today ? (
+              <span className="cal-status-pill muted">Future day</span>
+            ) : selectedConfirmed && totals.count === 0 ? (
+              <span className="cal-status-pill green">Smoke-free day confirmed 🍃</span>
+            ) : selectedMode !== "track" && totals.count > selectedLimit ? (
+              <span className="cal-status-pill red">
+                Above daily limit ({totals.count} / {selectedLimit})
+              </span>
+            ) : totals.count > 0 ? (
+              <span className="cal-status-pill amber">
+                {selectedMode === "track"
+                  ? `${totals.count} cigarettes recorded`
+                  : `Within daily limit (${totals.count} / ${selectedLimit})`}
+              </span>
+            ) : (
+              <span className="cal-status-pill muted">Untracked day</span>
+            )}
+          </div>
           <div className="calendar-day-total">
             <strong>{totals.count}</strong>
             <span>cigarettes recorded</span>
@@ -1284,6 +1537,30 @@ export function Calendar() {
           {totals.records.map((log) => (
             <LogRow key={log.id} log={log} />
           ))}
+          {selectedCravings.length > 0 && (
+            <div className="calendar-cravings-list">
+              <span className="calendar-subheading">
+                <Wind size={14} /> Cravings noticed ({selectedCravings.length})
+              </span>
+              {selectedCravings.map((c) => (
+                <div key={c.id} className="calendar-craving-item">
+                  <div className="calendar-craving-top">
+                    <strong>{c.trigger}</strong>
+                    <span className="pill">Intensity {c.intensity}/5</span>
+                  </div>
+                  <small>
+                    {formatTime(c.at, p.timezone)} ·{" "}
+                    {c.outcome === "passed"
+                      ? "Passed without smoking"
+                      : c.outcome === "smoked"
+                        ? "Smoked afterwards"
+                        : "Urge noted"}
+                  </small>
+                  {c.coping && <p className="calendar-craving-note">Helped: {c.coping}</p>}
+                </div>
+              ))}
+            </div>
+          )}
           {selected <= today && (
             <>
               <CheckinButton date={selected} />
