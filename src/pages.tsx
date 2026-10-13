@@ -295,7 +295,15 @@ export function Dashboard() {
       />
       <div className="dashboard-hero">
         <section className={`card daily-card ${over ? "limit-reached" : ""}`}>
-          <CardTitle title="Today’s overview" />
+          <CardTitle
+            title="Today’s overview"
+            action={
+              <span className="smoke-free-timer">
+                <Clock3 size={12} />
+                {latest ? formatSmokeFree(elapsed) : "Clean slate"}
+              </span>
+            }
+          />
           <div className="daily-card-body">
             <div className="count-ring">
               <svg viewBox="0 0 240 240" aria-hidden="true">
@@ -329,10 +337,6 @@ export function Dashboard() {
                         ? "Your goal is a smoke-free day"
                         : "your chosen daily limit"}
                 </span>
-                <span className="smoke-free-timer">
-                  <Clock3 size={12} />
-                  {latest ? formatSmokeFree(elapsed) : "Clean slate · 0 logged"}
-                </span>
               </div>
             </div>
             <CigaretteTracker
@@ -342,6 +346,31 @@ export function Dashboard() {
               onboarded={p.onboarded}
             />
           </div>
+          {p.onboarded && p.baseline > 0 && avoidedToday > 0 && (
+            <div className="daily-savings-strip">
+              <div className="savings-strip-left">
+                <span className="savings-icon-pill">
+                  <Wallet size={15} />
+                </span>
+                <div className="savings-strip-text">
+                  <span className="savings-amount">
+                    {money(moneySavedToday)} saved today
+                  </span>
+                  <span className="savings-detail">
+                    {avoidedToday} stick{avoidedToday > 1 ? "s" : ""} under baseline
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="savings-share-chip"
+                onClick={() => setShareOpen(true)}
+              >
+                <Share2 size={13} />
+                <span>Share</span>
+              </button>
+            </div>
+          )}
           <div className="daily-card-footer">
             <button className="button primary quick-log" onClick={quickLog}>
               <Plus size={20} />
@@ -365,30 +394,6 @@ export function Dashboard() {
           </p>
         </section>
       </div>
-      {p.onboarded && p.baseline > 0 && avoidedToday > 0 && (
-        <section className="card money-saved-banner">
-          <div className="money-saved-left">
-            <span className="stat-icon green">
-              <Wallet size={22} />
-            </span>
-            <div className="money-saved-text">
-              <span className="small-caps">DAILY SAVINGS</span>
-              <strong>{money(moneySavedToday)} saved today</strong>
-              <p>
-                {avoidedToday} cigarette{avoidedToday > 1 ? "s" : ""} avoided compared to your {p.baseline}/day baseline.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="button secondary compact"
-            onClick={() => setShareOpen(true)}
-          >
-            <Share2 size={16} />
-            Share
-          </button>
-        </section>
-      )}
       <div className={`stats-grid ${!p.showSpending ? "two" : ""}`}>
         <section className="card stat-card">
           <span className="stat-icon green">
