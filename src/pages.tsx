@@ -332,7 +332,9 @@ export function Dashboard() {
           </div>
           <p className="favorite-caption">
             {p.onboarded
-              ? `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · ${money(perStick(p))} / stick`
+              ? p.customPricePrompt
+                ? `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · Custom store price on log`
+                : `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · ${money(perStick(p))} / stick`
               : "Set up your favorite for one-tap logging"}
             <span>Undo after a quick log</span>
           </p>
@@ -1550,6 +1552,21 @@ export function SettingsPage() {
                   onChange={(e) => update("packSize", Number(e.target.value))}
                 />
               </Field>
+              <label className="toggle-row">
+                <div>
+                  <strong>Custom price per stick on log</strong>
+                  <small>
+                    Prompt for store price each time you log because stick prices
+                    vary by store.
+                  </small>
+                </div>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={form.customPricePrompt}
+                  onChange={(e) => update("customPricePrompt", e.target.checked)}
+                />
+              </label>
               <small className="muted">
                 Historical record prices remain unchanged.
               </small>

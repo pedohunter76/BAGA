@@ -141,6 +141,7 @@ export function ProfilePage() {
               {" · "}
               {favorite?.brand || "Brand"} {favorite?.name || ""}
               {form.price > 0 && ` · ₱${perStick(form).toFixed(2)}/stick`}
+              {form.customPricePrompt && " · Custom store price"}
             </p>
           </div>
         </div>
@@ -318,6 +319,22 @@ export function ProfilePage() {
                 </select>
               </Field>
             </div>
+
+            <label className="toggle-row profile-toggle-row">
+              <div>
+                <strong>Custom price per stick on log</strong>
+                <small>
+                  Prompt for store price each time you log because stick prices
+                  vary by store.
+                </small>
+              </div>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={form.customPricePrompt}
+                onChange={(e) => update("customPricePrompt", e.target.checked)}
+              />
+            </label>
           </div>
         </section>
 

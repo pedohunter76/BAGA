@@ -36,7 +36,7 @@ import { readState, saveLog, setDeleted } from "./db";
 import { catalog, defaults, perStick, localDateTime } from "./domain";
 import type { CigaretteLog, View } from "./domain";
 import { Logo, Modal } from "./ui";
-import { OnboardingDialog, LogDialog } from "./dialogs";
+import { OnboardingDialog, LogDialog, QuickPriceDialog } from "./dialogs";
 import { NotificationManager } from "./NotificationManager";
 import { NotificationInbox } from "./NotificationInbox";
 import { db } from "./db";
@@ -93,9 +93,9 @@ export default function App() {
   const [view, setView] = useState<View>(viewFromURL);
   const [now, setNow] = useState(new Date());
   const [offline, setOffline] = useState(!navigator.onLine);
-  const [dialog, setDialog] = useState<"onboard" | "log" | "install" | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<
+    "onboard" | "log" | "customPrice" | "install" | null
+  >(null);
   const [editLog, setEditLog] = useState<CigaretteLog>();
   const [logDate, setLogDate] = useState<string>();
   const [pendingLog, setPendingLog] = useState(false);
@@ -236,8 +236,14 @@ export default function App() {
       setDialog("onboard");
       return;
     }
-    setLogging(true);
     const p = state.preferences;
+    if (p.customPricePrompt) {
+      setEditLog(undefined);
+      setLogDate(undefined);
+      setDialog("customPrice");
+      return;
+    }
+    setLogging(true);
     const variant = [...catalog, ...state.customVariants].find(
       (v) => v.id === p.favoriteId,
     );
@@ -578,6 +584,9 @@ export default function App() {
                     date={logDate}
                     close={() => setDialog(null)}
                   />
+                )}
+                {dialog === "customPrice" && (
+                  <QuickPriceDialog close={() => setDialog(null)} />
                 )}
               </AppContext.Provider>
             )

@@ -274,6 +274,18 @@ export function OnboardingDialog({
                 />
               </Field>
             )}
+            <label className="toggle-row">
+              <div>
+                <strong>Custom price per stick on log</strong>
+                <small>Prompt for store price each time you log because stick prices vary by store.</small>
+              </div>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={form.customPricePrompt}
+                onChange={(e) => update("customPricePrompt", e.target.checked)}
+              />
+            </label>
             {form.goalMode !== "track" && (
               <Field
                 label={
@@ -505,7 +517,7 @@ export function LogDialog({
           </Field>
           <Field
             label="Price per stick (PHP)"
-            hint="Saved with this record; later price changes won’t affect it."
+            hint="Saved with this record; enter custom price if it varies by store."
           >
             <input
               type="number"
@@ -624,6 +636,182 @@ export function LogDialog({
           <button className="button primary" disabled={busy}>
             <Cigarette size={18} />
             {busy ? "Saving…" : existing ? "Save changes" : "Save record"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+export function QuickPriceDialog({ close }: { close: () => void }) {
+  const { preferences: p, customVariants, perform } = useApp();
+  const variants = [...catalog, ...customVariants];
+  const [variantId, setVariantId] = useState(p.favoriteId);
+  const [quantity, setQuantity] = useState(1);
+  const [price, setPrice] = useState(perStick(p));
+  const [store, setStore] = useState("");
+  const [busy, setBusy] = useState(false);
+  const favorite = variants.find((v) => v.id === variantId) || variants[0];
+  const totalCost = (Number(price) || 0) * quantity;
+
+  const quickStores = [
+    "Sari-sari store",
+    "7-Eleven",
+    "Ministop / Uncle John's",
+    "Street vendor",
+  ];
+
+  return (
+    <Modal
+      open
+      title="Log cigarette"
+      description="Store prices vary. Enter the stick price for this store."
+      onClose={close}
+    >
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setBusy(true);
+          let saved: CigaretteLog | undefined;
+          const ok = await perform(
+            async () => {
+              if (!favorite) throw new Error("Choose a brand from your library.");
+              saved = await saveLog({
+                variantId: favorite.id,
+                brand: favorite.brand,
+                variant: favorite.name,
+                quantity,
+                smokedAt: new Date().toISOString(),
+                priceSnapshot: Number(price) || 0,
+                trigger: "None",
+                mood: "",
+                location: store.trim(),
+                notes: store.trim() ? `Bought at ${store.trim()}` : "",
+              });
+            },
+            `One cigarette saved (₱${(Number(price) || 0).toFixed(2)}/stick).`,
+            async () => {
+              if (saved) await setDeleted(saved.id, true);
+            },
+          );
+          setBusy(false);
+          if (ok) close();
+        }}
+      >
+        <div className="form-stack">
+          <Field label="Brand & variant">
+            <select
+              value={variantId}
+              onChange={(e) => setVariantId(e.target.value)}
+            >
+              {variants.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.brand} · {v.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            label="Price per stick (PHP)"
+            hint="Enter what you paid per stick at this store."
+          >
+            <input
+              type="number"
+              min="0"
+              max="10000"
+              step="any"
+              required
+              autoFocus
+              value={price}
+              onChange={(e) => setPrice(Number(e.target.value))}
+            />
+          </Field>
+
+          <div className="quantity-control">
+            <span>Quantity</span>
+            <div>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Decrease quantity"
+                disabled={quantity <= 1}
+                onClick={() => setQuantity(quantity - 1)}
+              >
+                <Minus size={18} />
+              </button>
+              <input
+                aria-label="Quantity"
+                type="number"
+                min="1"
+                max="100"
+                required
+                value={quantity}
+                onChange={(e) => setQuantity(Number(e.target.value))}
+              />
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Increase quantity"
+                disabled={quantity >= 100}
+                onClick={() => setQuantity(quantity + 1)}
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+          </div>
+
+          <Field
+            label="Store / Location (optional)"
+            hint="Remember where you bought this stick"
+          >
+            <input
+              type="text"
+              maxLength={60}
+              placeholder="e.g. Sari-sari store, 7-Eleven"
+              value={store}
+              onChange={(e) => setStore(e.target.value)}
+            />
+            <div
+              className="quick-store-tags"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                marginTop: "8px",
+              }}
+            >
+              {quickStores.map((qs) => (
+                <button
+                  key={qs}
+                  type="button"
+                  className={`pill ${store === qs ? "active" : ""}`}
+                  style={{
+                    cursor: "pointer",
+                    fontSize: "11px",
+                    padding: "4px 10px",
+                  }}
+                  onClick={() => setStore(qs)}
+                >
+                  {qs}
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <div className="record-total">
+            <span>Total cost</span>
+            <strong>{money(totalCost)}</strong>
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="button secondary" onClick={close}>
+            Cancel
+          </button>
+          <button className="button primary" disabled={busy}>
+            <Cigarette size={18} />
+            {busy ? "Saving…" : `Log ${quantity} stick${quantity > 1 ? "s" : ""}`}
           </button>
         </div>
       </form>

@@ -28,6 +28,7 @@ export interface Preferences {
   price: number;
   packSize: number;
   priceUnit: "stick" | "pack";
+  customPricePrompt: boolean;
   animation: boolean;
   intensity: number;
   reminder: boolean;
@@ -97,6 +98,7 @@ export const defaults: Preferences = {
   price: 0,
   packSize: 20,
   priceUnit: "stick",
+  customPricePrompt: false,
   animation: true,
   intensity: 30,
   reminder: false,
@@ -106,25 +108,20 @@ export const defaults: Preferences = {
   showLungs: true,
 };
 export const catalog: Variant[] = [
-  ...["Red", "Gold", "Black", "Ice Blast"].map((name) => ({
+  ...["Red", "Blue", "Lights"].map((name) => ({
     id: `marlboro-${name.toLowerCase().replaceAll(" ", "-")}`,
     brand: "Marlboro",
     name,
   })),
-  ...["Red", "Blue"].map((name) => ({
-    id: `fortune-${name.toLowerCase()}`,
-    brand: "Fortune",
+  {
+    id: "chesterfield-red",
+    brand: "Chesterfield",
+    name: "Red",
+  },
+  ...["Blue", "Pop"].map((name) => ({
+    id: `esse-${name.toLowerCase().replaceAll(" ", "-")}`,
+    brand: "Esse",
     name,
-  })),
-  ...["Red", "Blue"].map((name) => ({
-    id: `winston-${name.toLowerCase()}`,
-    brand: "Winston",
-    name,
-  })),
-  ...["Mighty", "Camel", "Philip Morris", "Hope"].map((brand) => ({
-    id: brand.toLowerCase().replaceAll(" ", "-"),
-    brand,
-    name: "Unspecified variant",
   })),
 ];
 export const triggers = [
@@ -254,6 +251,7 @@ export const preferencesSchema = z.object({
   price: z.number().finite().min(0).max(10000),
   packSize: z.number().int().min(1).max(100),
   priceUnit: z.enum(["stick", "pack"]),
+  customPricePrompt: z.boolean().default(false),
   animation: z.boolean(),
   intensity: z.number().min(0).max(100),
   reminder: z.boolean(),

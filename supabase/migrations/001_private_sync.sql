@@ -28,7 +28,7 @@ begin
       if not (p ? 'deletedAt') then return false; end if;
       if p->'deletedAt' <> 'null'::jsonb then perform (p->>'deletedAt')::timestamptz; end if;
     when 'preferences' then
-      allowed := array['id','name','onboarded','adult','timezone','dailyLimit','baseline','weeklyReduction','goalMode','quitAt','favoriteId','price','packSize','priceUnit','animation','intensity','reminder','reminderTime','theme','showSpending','showLungs'];
+      allowed := array['id','name','onboarded','adult','timezone','dailyLimit','baseline','weeklyReduction','goalMode','quitAt','favoriteId','price','packSize','priceUnit','animation','intensity','reminder','reminderTime','theme','showSpending','showLungs','customPricePrompt'];
       if rid <> 'local' then return false; end if;
       foreach field in array array['name','timezone','goalMode','quitAt','favoriteId','priceUnit','reminderTime','theme'] loop
         if jsonb_typeof(p->field) is distinct from 'string' then return false; end if;
@@ -36,6 +36,7 @@ begin
       foreach field in array array['onboarded','adult','animation','reminder','showSpending','showLungs'] loop
         if jsonb_typeof(p->field) is distinct from 'boolean' then return false; end if;
       end loop;
+      if p ? 'customPricePrompt' and jsonb_typeof(p->'customPricePrompt') is distinct from 'boolean' then return false; end if;
       foreach field in array array['dailyLimit','baseline','weeklyReduction','intensity','packSize','price'] loop
         if jsonb_typeof(p->field) is distinct from 'number' or (p->>field)::numeric < 0 then return false; end if;
       end loop;
@@ -73,7 +74,7 @@ begin
     else return false;
   end case;
   foreach field in array allowed loop
-    if field not in ('custom','coping','outcome') and not (p ? field) then return false; end if;
+    if field not in ('custom','coping','outcome','customPricePrompt') and not (p ? field) then return false; end if;
   end loop;
   if p ? 'outcome' and jsonb_typeof(p->'outcome') <> 'string' then return false; end if;
   foreach field in array array['smokedAt','updatedAt','deletedAt','completedAt','measuredAt','at'] loop

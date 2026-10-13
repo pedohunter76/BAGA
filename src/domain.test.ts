@@ -10,6 +10,7 @@ import {
   measurementSchema,
   preferencesSchema,
   perStick,
+  catalog,
 } from "./domain";
 import type { CigaretteLog, Checkin } from "./domain";
 
@@ -182,5 +183,24 @@ describe("input validation", () => {
     expect(
       preferencesSchema.safeParse({ ...defaults, packSize: 0 }).success,
     ).toBe(false);
+  });
+  it("defaults customPricePrompt to false and allows true", () => {
+    const parsed = preferencesSchema.parse({ ...defaults });
+    expect(parsed.customPricePrompt).toBe(false);
+    const withCustom = preferencesSchema.parse({
+      ...defaults,
+      customPricePrompt: true,
+    });
+    expect(withCustom.customPricePrompt).toBe(true);
+  });
+  it("limits catalog strictly to requested Marlboro, Chesterfield, and Esse variants", () => {
+    expect(catalog).toEqual([
+      { id: "marlboro-red", brand: "Marlboro", name: "Red" },
+      { id: "marlboro-blue", brand: "Marlboro", name: "Blue" },
+      { id: "marlboro-lights", brand: "Marlboro", name: "Lights" },
+      { id: "chesterfield-red", brand: "Chesterfield", name: "Red" },
+      { id: "esse-blue", brand: "Esse", name: "Blue" },
+      { id: "esse-pop", brand: "Esse", name: "Pop" },
+    ]);
   });
 });

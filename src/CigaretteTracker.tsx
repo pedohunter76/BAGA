@@ -16,8 +16,12 @@ export function CigaretteTracker({
 }: CigaretteTrackerProps) {
   const hasLimit = goalMode !== "track";
   const effectiveLimit = onboarded ? dailyLimit : dailyLimit || 10;
+  const isUnlit = count === 0;
   const isExtinguished =
-    hasLimit && (effectiveLimit > 0 ? count >= effectiveLimit : count > 0);
+    !isUnlit &&
+    hasLimit &&
+    (effectiveLimit > 0 ? count >= effectiveLimit : count > 0);
+  const isLit = !isUnlit && !isExtinguished;
   const remaining = Math.max(0, effectiveLimit - count);
   const burnRatio =
     hasLimit && effectiveLimit > 0 ? Math.min(1, count / effectiveLimit) : 0;
@@ -25,9 +29,11 @@ export function CigaretteTracker({
   // Paper length shrinks smoothly as cigarettes are smoked today
   const maxPaperLen = 175;
   const minPaperLen = 28;
-  const paperLen = isExtinguished
-    ? minPaperLen
-    : Math.max(minPaperLen, maxPaperLen * (1 - burnRatio * 0.75));
+  const paperLen = isUnlit
+    ? maxPaperLen
+    : isExtinguished
+      ? minPaperLen
+      : Math.max(minPaperLen, maxPaperLen * (1 - burnRatio * 0.75));
 
   const filterX = 14;
   const filterWidth = 54;
@@ -40,11 +46,15 @@ export function CigaretteTracker({
 
   return (
     <div
-      className={`cigarette-tracker-container ${isExtinguished ? "is-extinguished" : "is-lit"}`}
+      className={`cigarette-tracker-container ${
+        isExtinguished ? "is-extinguished" : isUnlit ? "is-unlit" : "is-lit"
+      }`}
       aria-label={
         isExtinguished
           ? "Cigarette extinguished. Daily limit reached."
-          : `Active cigarette. ${remaining} remaining before limit.`
+          : isUnlit
+            ? `Unlit cigarette. 0 smoked today. ${hasLimit ? `${remaining} remaining before limit.` : "Ready to track."}`
+            : `Active cigarette. ${remaining} remaining before limit.`
       }
     >
       <div className="cigarette-canvas-wrap">
@@ -116,6 +126,13 @@ export function CigaretteTracker({
               <stop offset="75%" stopColor="#1e1e1e" />
               <stop offset="100%" stopColor="#0d0d0d" />
             </radialGradient>
+
+            {/* Unlit fresh tobacco blend gradient */}
+            <linearGradient id="unlitTobacco" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#7a4e28" />
+              <stop offset="50%" stopColor="#5d3718" />
+              <stop offset="100%" stopColor="#43240e" />
+            </linearGradient>
 
             {/* Burning ember glow filter */}
             <filter id="emberGlow" x="-40%" y="-40%" width="180%" height="180%">
@@ -218,8 +235,39 @@ export function CigaretteTracker({
             />
           )}
 
-          {/* Ash and Ember Tip */}
-          {!isExtinguished ? (
+          {/* Ash and Ember Tip / Unlit Tip */}
+          {isExtinguished ? (
+            <g className="extinguished-group">
+              {/* Charred, cold extinguished ash tip */}
+              <path
+                className="cold-ash-tip"
+                d={`M ${tipX} ${cigY} Q ${tipX + 7} ${cigY + 4} ${tipX + 8} ${cigY + cigHeight / 2} Q ${tipX + 6} ${cigY + cigHeight} ${tipX} ${cigY + cigHeight} Z`}
+                fill="url(#coldAsh)"
+              />
+              {/* Rough charred flecks */}
+              <circle cx={tipX + 4} cy={cigY + 5} r="1.2" fill="#141414" />
+              <circle cx={tipX + 6} cy={cigY + 11} r="1.5" fill="#242424" />
+              <circle cx={tipX + 5} cy={cigY + 17} r="1.1" fill="#111111" />
+
+              {/* Dying extinction puff animation */}
+              <g className="extinguish-puff">
+                <ellipse
+                  className="puff-ring-1"
+                  cx={tipX + 10}
+                  cy={cigY + cigHeight / 2 - 8}
+                  rx="6"
+                  ry="4"
+                />
+                <ellipse
+                  className="puff-ring-2"
+                  cx={tipX + 15}
+                  cy={cigY + cigHeight / 2 - 16}
+                  rx="8"
+                  ry="5"
+                />
+              </g>
+            </g>
+          ) : isLit ? (
             <g className="ember-group">
               {/* Ash base */}
               <path
@@ -266,35 +314,27 @@ export function CigaretteTracker({
               </g>
             </g>
           ) : (
-            <g className="extinguished-group">
-              {/* Charred, cold extinguished ash tip */}
-              <path
-                className="cold-ash-tip"
-                d={`M ${tipX} ${cigY} Q ${tipX + 7} ${cigY + 4} ${tipX + 8} ${cigY + cigHeight / 2} Q ${tipX + 6} ${cigY + cigHeight} ${tipX} ${cigY + cigHeight} Z`}
-                fill="url(#coldAsh)"
+            <g className="unlit-group">
+              {/* Fresh unlit cut tobacco end */}
+              <ellipse
+                cx={tipX + 1.5}
+                cy={cigY + cigHeight / 2}
+                rx={2.5}
+                ry={cigHeight / 2 - 0.5}
+                fill="url(#unlitTobacco)"
               />
-              {/* Rough charred flecks */}
-              <circle cx={tipX + 4} cy={cigY + 5} r="1.2" fill="#141414" />
-              <circle cx={tipX + 6} cy={cigY + 11} r="1.5" fill="#242424" />
-              <circle cx={tipX + 5} cy={cigY + 17} r="1.1" fill="#111111" />
-
-              {/* Dying extinction puff animation */}
-              <g className="extinguish-puff">
-                <ellipse
-                  className="puff-ring-1"
-                  cx={tipX + 10}
-                  cy={cigY + cigHeight / 2 - 8}
-                  rx="6"
-                  ry="4"
-                />
-                <ellipse
-                  className="puff-ring-2"
-                  cx={tipX + 15}
-                  cy={cigY + cigHeight / 2 - 16}
-                  rx="8"
-                  ry="5"
-                />
-              </g>
+              {/* Clean paper edge seam */}
+              <line
+                x1={tipX}
+                y1={cigY}
+                x2={tipX}
+                y2={cigY + cigHeight}
+                stroke="#d0d0c8"
+                strokeWidth="0.8"
+              />
+              <circle cx={tipX + 1} cy={cigY + 6} r="0.8" fill="#4d2f16" />
+              <circle cx={tipX + 2} cy={cigY + 11} r="0.9" fill="#754823" />
+              <circle cx={tipX + 1} cy={cigY + 16} r="0.7" fill="#3b220e" />
             </g>
           )}
         </svg>
@@ -304,32 +344,40 @@ export function CigaretteTracker({
         <div className="cigarette-status-header">
           <span
             className={`cigarette-status-pill ${
-              isExtinguished ? "extinguished" : "lit"
+              isExtinguished ? "extinguished" : isUnlit ? "unlit" : "lit"
             }`}
           >
             <span
               className={`cigarette-status-dot ${
-                isExtinguished ? "extinguished" : "lit"
+                isExtinguished ? "extinguished" : isUnlit ? "unlit" : "lit"
               }`}
             />
-            {isExtinguished ? "Extinguished" : "Lit · Active"}
+            {isExtinguished ? "Extinguished" : isUnlit ? "Unlit" : "Lit · Active"}
           </span>
 
           <strong className="cigarette-status-title">
             {isExtinguished
               ? "Daily limit reached"
-              : hasLimit
-                ? `${remaining} remaining before limit`
-                : "Tracking mode"}
+              : isUnlit
+                ? hasLimit
+                  ? `${remaining} remaining before limit`
+                  : "0 smoked today"
+                : hasLimit
+                  ? `${remaining} remaining before limit`
+                  : "Tracking mode"}
           </strong>
         </div>
 
         <p className="cigarette-status-desc">
           {isExtinguished
             ? `You have reached your limit of ${effectiveLimit} stick${effectiveLimit === 1 ? "" : "s"} today. Put out and take a breath.`
-            : hasLimit
-              ? "The cigarette burns down as you log and extinguishes once your daily limit is reached."
-              : "No limit set. Record your pace with calm awareness."}
+            : isUnlit
+              ? hasLimit
+                ? "Unlit at 0 cigarettes today. Lights up active once you log your first stick and burns down toward your limit."
+                : "Unlit. Lights up active once you log your first cigarette."
+              : hasLimit
+                ? "The cigarette burns down as you log and extinguishes once your daily limit is reached."
+                : "No limit set. Record your pace with calm awareness."}
         </p>
       </div>
     </div>
