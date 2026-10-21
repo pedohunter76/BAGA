@@ -349,47 +349,60 @@ test("the website opens inside a cross-origin preview frame", async ({
   }
 });
 
-test("craving journal works offline without adding cigarette records", async ({
+test("budget persists offline and follows cigarette edits and deletion", async ({
   page,
   context,
 }) => {
   await setup(page);
+  await page.getByRole("button", { name: "Log cigarette +1" }).click();
+  await page.getByRole("button", { name: "View budget", exact: true }).click();
+  await expect(page.getByTestId("budget-spent")).toContainText("12.00");
+  await page.getByLabel("Monthly cigarette budget (PHP)").fill("1000");
+  await page.getByRole("button", { name: "Save budget" }).click();
+  await expect(page.getByTestId("budget-remaining")).toContainText("988.00");
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload();
   await expect
-    .poll(() =>
-      page.evaluate(() => Boolean(navigator.serviceWorker.controller)),
-    )
+    .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
     .toBe(true);
   await context.setOffline(true);
-  await page.goto("/?view=cravings");
-  await page.getByRole("button", { name: "Log a craving" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("What helped? (optional)").fill("A short walk");
-  await dialog.getByLabel("Outcome").selectOption("passed");
-  await dialog.getByLabel("Notes (optional)").fill("Coffee break");
-  await dialog.getByRole("button", { name: "Save craving" }).click();
-  await expect(dialog).not.toBeVisible();
-  await expect(page.getByText("What helped: A short walk")).toBeVisible();
   await page.reload();
-  await expect(page.getByText("Coffee break", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Edit craving" }).click();
+  await expect(page.getByLabel("Monthly cigarette budget (PHP)")).toHaveValue(
+    "1000",
+  );
+  await page.goto("/?view=log");
+  await page
+    .getByRole("button", { name: /^Edit 1 Marlboro/ })
+    .first()
+    .click();
   await page
     .getByRole("dialog")
-    .getByLabel("Notes (optional)")
-    .fill("Updated context");
-  await page.getByRole("button", { name: "Save craving" }).click();
+    .getByLabel("Quantity", { exact: true })
+    .fill("2");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Save changes" })
+    .click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
-  await expect(
-    page.getByText("Updated context", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Delete craving" }).click();
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await expect(
-    page.getByText("Updated context", { exact: true }),
-  ).toBeVisible();
-  await page.goto("/");
-  await expect(page.getByTestId("today-count")).toContainText("0");
+  await page.goto("/?view=budget");
+  await expect(page.getByTestId("budget-spent")).toContainText("24.00");
+  await page.goto("/?view=log");
+  await page.getByRole("button", { name: /^Edit 2 Marlboro/ }).click();
+  await page
+    .getByRole("button", { name: "Delete record", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm delete", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page.goto("/?view=budget");
+  await expect(page.getByTestId("budget-spent")).toContainText("0.00");
+  await expect(page.getByTestId("budget-remaining")).toContainText("1,000.00");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("validates, reviews, and restores an exported backup", async ({
@@ -425,7 +438,7 @@ test("phase-two screens remain accessible and fit a narrow viewport", async ({
   page,
 }) => {
   await setup(page);
-  for (const view of ["cravings", "account", "goals", "insights", "settings"]) {
+  for (const view of ["budget", "account", "goals", "insights", "settings"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const results = await new AxeBuilder({ page })
@@ -493,6 +506,9 @@ test("small-screen profile and navigation stay comfortable and accessible", asyn
   await page.getByRole("button", { name: "Cancel setup" }).click();
   await expect(page.locator(".welcome-page")).toBeVisible();
   await page.getByRole("button", { name: "Discard saved setup" }).click();
+  await expect(
+    page.getByRole("button", { name: "Create my profile", exact: true }),
+  ).toBeVisible();
   await setup(page);
   const more = page.getByRole("button", { name: "More navigation" });
   await more.click();
@@ -503,10 +519,10 @@ test("small-screen profile and navigation stay comfortable and accessible", asyn
   await more.click();
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "Craving journal" })
+    .getByRole("button", { name: "Budget", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Notice the urge." }),
+    page.getByRole("heading", { name: "Your budget." }),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goto("/");

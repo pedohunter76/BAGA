@@ -26,6 +26,7 @@ import {
   Check,
   X,
   Download,
+  Wallet,
   Leaf,
   Menu,
   Cloud,
@@ -41,7 +42,7 @@ import { NotificationInbox } from "./NotificationInbox";
 import { db } from "./db";
 import { WelcomePage } from "./WelcomePage";
 import { AccountPage } from "./AccountPage";
-import { CravingsPage } from "./CravingsPage";
+import { BudgetPage } from "./BudgetPage";
 import { CloudAutoSync } from "./CloudAutoSync";
 const Dashboard = lazy(() =>
   import("./pages").then((module) => ({ default: module.Dashboard })),
@@ -76,11 +77,12 @@ const nav = [
   { id: "goals", label: "Goals & streaks", icon: Flag },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "library", label: "Brand library", icon: Library },
-  { id: "cravings", label: "Craving journal", icon: Leaf },
+  { id: "budget", label: "Budget", icon: Wallet },
   { id: "account", label: "Account & sync", icon: Cloud },
 ] as const;
 function viewFromURL(): View {
   const value = new URLSearchParams(window.location.search).get("view");
+  if (value === "cravings") return "budget";
   return [...nav.map((n) => n.id), "settings"].includes(value || "")
     ? (value as View)
     : "home";
@@ -130,6 +132,7 @@ export default function App() {
           measurements: [],
           customVariants: [],
           cravings: [],
+          budget: undefined,
         },
         error:
           "Your browser could not open the local diary. Enable site storage or try another browser. Nothing has been saved.",
@@ -303,7 +306,7 @@ export default function App() {
     calendar: Calendar,
     library: LibraryPage,
     settings: SettingsPage,
-    cravings: CravingsPage,
+    budget: BudgetPage,
     account: AccountPage,
   };
   const Page = pages[view];

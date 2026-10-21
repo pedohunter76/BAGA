@@ -4269,3 +4269,69 @@ body:has(.modal) .toast {
   top: max(16px, env(safe-area-inset-top));
   bottom: auto;
 }
+
+.budget-overview {
+  margin-bottom: 24px;
+}
+.budget-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.budget-balance {
+  display: block;
+  font-size: clamp(2rem, 7vw, 3.5rem);
+  line-height: 1.2;
+  margin: 12px 0 20px;
+  overflow-wrap: anywhere;
+}
+.budget-progress {
+  width: 100%;
+  height: 12px;
+  accent-color: #a3e635;
+}
+.budget-form {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.budget-form > :first-child {
+  flex: 1 1 240px;
+}
+.budget-days {
+  display: grid;
+  gap: 4px;
+}
+.budget-day {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #7773;
+}
+@media (max-width: 600px) {
+  .budget-form {
+    display: grid;
+  }
+  .budget-form .button {
+    width: 100%;
+  }
+}
+.budget-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}

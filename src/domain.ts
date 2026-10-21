@@ -9,7 +9,7 @@ export type View =
   | "goals"
   | "calendar"
   | "library"
-  | "cravings"
+  | "budget"
   | "account"
   | "settings";
 export type GoalMode = "reduce" | "quit" | "track";

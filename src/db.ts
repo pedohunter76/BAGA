@@ -1,3 +1,4 @@
+import { budgetSchema } from "./budget";
 import { clearDiagnostics } from "./diagnostics";
 import { withGoalHistory } from "./goals";
 import Dexie, { type EntityTable } from "dexie";
@@ -137,15 +138,23 @@ export async function saveMeasurement(input: Omit<Measurement, "id">) {
   await db.measurements.add({ ...value, id: crypto.randomUUID() });
 }
 export async function readState() {
-  const [preferences, logs, checkins, measurements, customVariants, cravings] =
-    await Promise.all([
-      db.preferences.get("local"),
-      db.logs.toArray(),
-      db.checkins.toArray(),
-      db.measurements.toArray(),
-      db.variants.toArray(),
-      db.cravings.toArray(),
-    ]);
+  const [
+    preferences,
+    logs,
+    checkins,
+    measurements,
+    customVariants,
+    cravings,
+    budget,
+  ] = await Promise.all([
+    db.preferences.get("local"),
+    db.logs.toArray(),
+    db.checkins.toArray(),
+    db.measurements.toArray(),
+    db.variants.toArray(),
+    db.cravings.toArray(),
+    db.deviceState.get("budget"),
+  ]);
   const validated = preferencesSchema.safeParse({
     ...defaults,
     ...preferences,
@@ -154,6 +163,9 @@ export async function readState() {
     preferences: validated.success
       ? { ...validated.data, goalHistory: validated.data.goalHistory ?? [] }
       : defaults,
+    budget: budgetSchema.safeParse(budget?.data).success
+      ? budgetSchema.parse(budget?.data)
+      : undefined,
     preferencesRecoveryNeeded: !validated.success,
     logs,
     checkins,

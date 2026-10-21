@@ -1,3 +1,4 @@
+import { budgetSchema } from "./budget";
 import { z } from "zod";
 import { db } from "./db";
 import { recordSchemas, snapshot } from "./records";
@@ -5,6 +6,7 @@ import { cloudKinds } from "./sync-types";
 
 export const backupSchema = z.object({
   version: z.literal(1),
+  budget: budgetSchema.optional(),
   exportedAt: z.iso.datetime(),
   preferences: recordSchemas.preferences,
   logs: z.array(recordSchemas.logs).max(50000),
@@ -71,6 +73,12 @@ export async function restoreBackup(backup: Backup, mode: "merge" | "replace") {
           await table.put(row);
         }
       }
+      if (mode === "replace") await db.deviceState.delete("budget");
+      if (
+        valid.budget &&
+        (mode === "replace" || !(await db.deviceState.get("budget")))
+      )
+        await db.deviceState.put({ id: "budget", data: valid.budget });
       if ((await db.preferences.get("local"))?.onboarded)
         await db.deviceState.delete("onboarding");
     },

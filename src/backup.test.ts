@@ -71,3 +71,21 @@ it("rejects invalid JSON and duplicate IDs before changing storage", async () =>
   ).toThrow("duplicate");
   expect(await db.logs.count()).toBe(1);
 });
+it("round-trips budget settings and preserves them during merge", async () => {
+  await db.deviceState.put({ id: "budget", data: { monthlyLimit: 750 } });
+  const backup = await exported();
+  expect(backup.budget?.monthlyLimit).toBe(750);
+  await eraseData();
+  await restoreBackup(backup, "replace");
+  expect((await db.deviceState.get("budget"))?.data).toEqual({
+    monthlyLimit: 750,
+  });
+  await db.deviceState.put({ id: "budget", data: { monthlyLimit: 900 } });
+  await restoreBackup(backup, "merge");
+  expect((await db.deviceState.get("budget"))?.data).toEqual({
+    monthlyLimit: 900,
+  });
+  const { budget, ...legacy } = backup;
+  await restoreBackup(legacy, "replace");
+  expect(await db.deviceState.get("budget")).toBeUndefined();
+});

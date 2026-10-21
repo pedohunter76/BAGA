@@ -476,14 +476,14 @@ export function Dashboard() {
                   ? "Set a price for meaningful totals"
                   : "From the prices saved with each record"}
               </p>
+              <button
+                className="budget-home-link"
+                aria-label="View budget"
+                onClick={() => navigate("budget")}
+              >
+                Budget <ArrowUpRight size={16} />
+              </button>
             </div>
-            <button
-              className="stat-link"
-              aria-label="View spending insights"
-              onClick={() => navigate("insights")}
-            >
-              <ArrowUpRight size={17} />
-            </button>
           </section>
         )}
         <section className="card stat-card">
@@ -1897,6 +1897,7 @@ export function SettingsPage() {
     cravings,
     perform,
     toast,
+    budget,
     install,
     openOnboarding,
   } = useApp();
@@ -1911,6 +1912,7 @@ export function SettingsPage() {
     if (format === "json")
       content = JSON.stringify(
         {
+          budget,
           version: 1,
           exportedAt: new Date().toISOString(),
           preferences: p,
