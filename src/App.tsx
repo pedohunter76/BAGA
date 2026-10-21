@@ -155,6 +155,7 @@ export default function App() {
           customVariants: [],
           cravings: [],
           budget: undefined,
+          finances: [],
         },
         error:
           "Your browser could not open the local diary. Enable site storage or try another browser. Nothing has been saved.",

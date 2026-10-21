@@ -3,6 +3,19 @@ import { dayKey, type CigaretteLog } from "./domain";
 
 export const budgetSchema = z.object({
   monthlyLimit: z.number().finite().min(0).max(10000000),
+  openingBalance: z.number().finite().min(-10000000).max(10000000).optional(),
+  savingsTarget: z.number().finite().min(0).max(10000000).optional(),
+  includeCigarettes: z.boolean().optional(),
+  categoryLimits: z
+    .record(
+      z.string().trim().min(1).max(60),
+      z.number().finite().min(0).max(10000000),
+    )
+    .refine(
+      (value) => Object.keys(value).length <= 100,
+      "Use at most 100 category budgets.",
+    )
+    .optional(),
 });
 export type BudgetSettings = z.infer<typeof budgetSchema>;
 const cents = (value: number) => Math.round(value * 100);

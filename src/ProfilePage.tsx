@@ -36,7 +36,13 @@ const AVATAR_COLORS = [
 ] as const;
 
 export function ProfilePage() {
-  const { preferences: p, customVariants, perform, toast, openOnboarding } = useApp();
+  const {
+    preferences: p,
+    customVariants,
+    perform,
+    toast,
+    openOnboarding,
+  } = useApp();
 
   const [form, setForm] = useState<Preferences>({ ...p });
   const [saving, setSaving] = useState(false);
@@ -198,9 +204,7 @@ export function ProfilePage() {
                     title={label}
                     aria-label={`Color ${label}`}
                   >
-                    {avatarColor === id && (
-                      <Check size={16} color="#111614" />
-                    )}
+                    {avatarColor === id && <Check size={16} color="#111614" />}
                   </button>
                 ))}
               </div>
@@ -265,7 +269,10 @@ export function ProfilePage() {
                     className="stepper-number-input"
                     value={form.dailyLimit}
                     onChange={(e) =>
-                      update("dailyLimit", Math.max(0, Number(e.target.value) || 0))
+                      update(
+                        "dailyLimit",
+                        Math.max(0, Number(e.target.value) || 0),
+                      )
                     }
                   />
                   <button
@@ -346,7 +353,8 @@ export function ProfilePage() {
           />
           <div className="new-user-guide-row">
             <p className="new-user-guide-text">
-              Looking for the step-by-step onboarding walkthrough? You can open the guided setup at any time.
+              Looking for the step-by-step onboarding walkthrough? You can open
+              the guided setup at any time.
             </p>
             <button
               type="button"
@@ -367,7 +375,9 @@ export function ProfilePage() {
           />
           <div className="new-user-guide-row">
             <p className="new-user-guide-text">
-              Want to start completely fresh? This clears all local diary records and profile settings from IndexedDB and local storage.
+              Want to start completely fresh? This clears all local financial
+              transactions, budgets, diary records and profile settings from
+              IndexedDB and local storage.
             </p>
             {confirmReset ? (
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -422,7 +432,8 @@ export function ProfilePage() {
         <p className="device-storage-notice">
           <ShieldCheck size={15} />
           <span>
-            All information is saved locally on your device in IndexedDB. BAGA never uploads your diary without your permission.
+            All information is saved locally on your device in IndexedDB. BAGA
+            never uploads your diary without your permission.
           </span>
         </p>
       </div>

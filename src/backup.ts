@@ -1,3 +1,4 @@
+import { financeSchema } from "./finance";
 import { budgetSchema } from "./budget";
 import { z } from "zod";
 import { db } from "./db";
@@ -7,6 +8,7 @@ import { cloudKinds } from "./sync-types";
 export const backupSchema = z.object({
   version: z.literal(1),
   budget: budgetSchema.optional(),
+  finances: z.array(financeSchema).max(50000).optional(),
   exportedAt: z.iso.datetime(),
   preferences: recordSchemas.preferences,
   logs: z.array(recordSchemas.logs).max(50000),
@@ -35,6 +37,11 @@ export function parseBackup(text: string): Backup {
         "The backup contains duplicate record IDs. No data was changed.",
       );
   }
+  const financeIds = (parsed.finances ?? []).map((row) => row.id);
+  if (new Set(financeIds).size !== financeIds.length)
+    throw new Error(
+      "The backup contains duplicate financial transaction IDs. No data was changed.",
+    );
   return parsed;
 }
 export async function restoreBackup(backup: Backup, mode: "merge" | "replace") {
@@ -43,6 +50,7 @@ export async function restoreBackup(backup: Backup, mode: "merge" | "replace") {
     "rw",
     [
       db.logs,
+      db.finances,
       db.preferences,
       db.deviceState,
       db.checkins,
@@ -72,6 +80,15 @@ export async function restoreBackup(backup: Backup, mode: "merge" | "replace") {
           }
           await table.put(row);
         }
+      }
+      if (mode === "replace") await db.finances.clear();
+      for (const row of valid.finances ?? []) {
+        const existing = await db.finances.get(row.id);
+        if (existing && snapshot(existing) !== snapshot(row))
+          throw new Error(
+            "A financial transaction differs from this backup. Nothing was imported. Review the backup or choose Replace.",
+          );
+        await db.finances.put(row);
       }
       if (mode === "replace") await db.deviceState.delete("budget");
       if (

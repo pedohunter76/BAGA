@@ -60,7 +60,8 @@ export function BackupRestore() {
               Backup from {new Date(backup.exportedAt).toLocaleDateString()}:{" "}
               {backup.logs.length} cigarette records, {backup.checkins.length}{" "}
               check-ins, {backup.cravings.length} cravings, and{" "}
-              {backup.measurements.length} measurements.
+              {backup.measurements.length} measurements, and{" "}
+              {backup.finances?.length ?? 0} financial transactions.
             </p>
             <Field label="Restore mode">
               <select
@@ -71,14 +72,15 @@ export function BackupRestore() {
                   Merge new records · keep current preferences
                 </option>
                 <option value="replace">
-                  Replace local diary and preferences
+                  Replace local data and preferences
                 </option>
               </select>
             </Field>
             <p className="settings-copy">
-              Merging never overwrites a different existing record. If cloud
-              sync is enabled, imported changes will be uploaded and conflicts
-              will need review.
+              Merging never overwrites a different existing record. Budget
+              settings and financial transactions stay on this device. If cloud
+              sync is enabled, imported diary changes will be uploaded and
+              conflicts will need review.
             </p>
             {mode === "replace" && (
               <Field

@@ -1753,6 +1753,7 @@ export function SettingsPage() {
     perform,
     toast,
     budget,
+    finances,
     install,
     openOnboarding,
   } = useApp();
@@ -1768,6 +1769,7 @@ export function SettingsPage() {
       content = JSON.stringify(
         {
           budget,
+          finances,
           version: 1,
           exportedAt: new Date().toISOString(),
           preferences: p,
@@ -2095,8 +2097,8 @@ export function SettingsPage() {
         <div>
           <h2>A clean slate</h2>
           <p>
-            Delete all diary records, measurements, custom brands, and
-            preferences from this browser.
+            Delete all diary records, financial transactions, budget settings,
+            measurements, custom brands, and preferences from this browser.
           </p>
         </div>
         <button className="button danger" onClick={() => setDeleting(true)}>
@@ -2108,7 +2110,7 @@ export function SettingsPage() {
         <Modal
           open
           title="Clear this device’s BAGA data?"
-          description="This permanently removes your local diary. Export a backup first."
+          description="This permanently removes your local financial and diary data. Export a JSON backup first."
           onClose={() => setDeleting(false)}
         >
           <div className="form-stack">

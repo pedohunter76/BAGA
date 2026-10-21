@@ -26,6 +26,7 @@ import type {
 export const db = new Dexie("baga-private-v1") as Dexie & {
   deviceState: EntityTable<{ id: string; data: unknown }, "id">;
   notifications: EntityTable<import("./notifications").AppNotification, "id">;
+  finances: EntityTable<import("./finance").FinanceTransaction, "id">;
   logs: EntityTable<CigaretteLog, "id">;
   preferences: EntityTable<Preferences, "id">;
   checkins: EntityTable<Checkin, "date">;
@@ -79,6 +80,8 @@ db.version(3)
     )
       await tx.table("preferences").put(withGoalHistory(validated.data));
   });
+
+db.version(4).stores({ finances: "id, date, type, category" });
 
 export async function savePreferences(p: Preferences) {
   return db.transaction("rw", db.preferences, db.deviceState, async () => {
@@ -146,6 +149,7 @@ export async function readState() {
     customVariants,
     cravings,
     budget,
+    finances,
   ] = await Promise.all([
     db.preferences.get("local"),
     db.logs.toArray(),
@@ -154,6 +158,7 @@ export async function readState() {
     db.variants.toArray(),
     db.cravings.toArray(),
     db.deviceState.get("budget"),
+    db.finances.toArray(),
   ]);
   const validated = preferencesSchema.safeParse({
     ...defaults,
@@ -166,6 +171,7 @@ export async function readState() {
     budget: budgetSchema.safeParse(budget?.data).success
       ? budgetSchema.parse(budget?.data)
       : undefined,
+    finances,
     preferencesRecoveryNeeded: !validated.success,
     logs,
     checkins,
@@ -180,6 +186,7 @@ export async function eraseData() {
     [
       db.deviceState,
       db.notifications,
+      db.finances,
       db.logs,
       db.preferences,
       db.checkins,
@@ -195,6 +202,7 @@ export async function eraseData() {
       await Promise.all([
         db.deviceState.clear(),
         db.notifications.clear(),
+        db.finances.clear(),
         db.logs.clear(),
         db.preferences.clear(),
         db.checkins.clear(),

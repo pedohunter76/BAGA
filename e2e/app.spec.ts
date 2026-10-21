@@ -335,7 +335,7 @@ test("budget persists offline and follows cigarette edits and deletion", async (
   await page.getByRole("button", { name: "Log cigarette +1" }).click();
   await page.getByRole("button", { name: "View budget", exact: true }).click();
   await expect(page.getByTestId("budget-spent")).toContainText("12.00");
-  await page.getByLabel("Monthly cigarette budget (PHP)").fill("1000");
+  await page.getByLabel("Monthly expense budget (PHP)").fill("1000");
   await page.getByRole("button", { name: "Save budget" }).click();
   await expect(page.getByTestId("budget-remaining")).toContainText("988.00");
   await page.evaluate(() => navigator.serviceWorker.ready);
@@ -345,7 +345,7 @@ test("budget persists offline and follows cigarette edits and deletion", async (
     .toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByLabel("Monthly cigarette budget (PHP)")).toHaveValue(
+  await expect(page.getByLabel("Monthly expense budget (PHP)")).toHaveValue(
     "1000",
   );
   await page.goto("/?view=log");
@@ -381,6 +381,165 @@ test("budget persists offline and follows cigarette edits and deletion", async (
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("general budget tracks income, expenses, categories and cash offline", async ({
+  page,
+  context,
+}, testInfo) => {
+  await setup(page);
+  await page.goto("/?view=budget");
+  await page.getByLabel("Monthly expense budget (PHP)").fill("1500");
+  await page.getByRole("button", { name: "Save budget", exact: true }).click();
+  async function add(
+    type: "income" | "expense",
+    amount: string,
+    description: string,
+  ) {
+    await page
+      .getByRole("button", {
+        name: type === "income" ? "Add income" : "Add expense",
+        exact: true,
+      })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Amount (PHP)", { exact: true }).fill(amount);
+    await dialog
+      .getByLabel("Description (optional)", { exact: true })
+      .fill(description);
+    await dialog
+      .getByRole("button", { name: "Save transaction", exact: true })
+      .click();
+    await expect(dialog).not.toBeVisible();
+  }
+  await add("income", "2000", "Payday");
+  await add("expense", "150", "Weekly groceries");
+  await expect(page.getByTestId("finance-income")).toContainText("2,000.00");
+  await expect(page.getByTestId("finance-balance")).toContainText("1,850.00");
+  await expect(page.getByTestId("budget-spent")).toContainText("150.00");
+  await page.locator("summary").filter({ hasText: "Balance, savings" }).click();
+  await page.getByLabel(/^Opening balance \(PHP\)/).fill("100");
+  await page.getByLabel(/^Monthly savings target \(PHP\)/).fill("200");
+  await page.getByRole("button", { name: "Save budget", exact: true }).click();
+  await expect(page.getByTestId("finance-balance")).toContainText("1,950.00");
+  await page.getByLabel("Category limit (PHP)", { exact: true }).fill("100");
+  await page
+    .getByRole("button", { name: "Set category limit", exact: true })
+    .click();
+  await expect(
+    page.getByText("₱50.00 over limit", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("combobox", { name: "Transaction type", exact: true })
+    .selectOption("income");
+  await expect(page.locator(".finance-history")).toContainText("Payday");
+  await expect(page.locator(".finance-history")).not.toContainText(
+    "Weekly groceries",
+  );
+  await page
+    .getByRole("combobox", { name: "Transaction type", exact: true })
+    .selectOption("all");
+  await page
+    .getByRole("button", {
+      name: "Edit transaction Weekly groceries",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("Amount (PHP)", { exact: true })
+    .fill("175");
+  await page
+    .getByRole("button", { name: "Save transaction changes", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByTestId("finance-balance")).toContainText("1,925.00");
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export filtered CSV" }).click();
+  expect((await downloaded).suggestedFilename()).toMatch(
+    /^baga-finances-.*\.csv$/,
+  );
+  await page
+    .getByRole("button", {
+      name: "Edit transaction Weekly groceries",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", { name: "Delete transaction", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm delete transaction", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByTestId("budget-spent")).toContainText("0.00");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.getByTestId("budget-spent")).toContainText("175.00");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect
+    .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
+    .toBe(true);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByTestId("finance-balance")).toContainText("1,925.00");
+  await expect(
+    page.getByText("₱75.00 over limit", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Search transactions", { exact: true })
+    .fill("no match");
+  await expect(
+    page.getByRole("heading", { name: "No matching transactions." }),
+  ).toBeVisible();
+  await page.getByLabel("Search transactions", { exact: true }).fill("");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("general-budget.png"),
+    fullPage: true,
+  });
+});
+
+test("manual purchases can replace automatic cigarette costs", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Log cigarette +1" }).click();
+  await page.goto("/?view=budget");
+  await page.getByLabel("Monthly expense budget (PHP)").fill("1000");
+  await page.getByRole("button", { name: "Save budget", exact: true }).click();
+  await page.getByRole("button", { name: "Add expense", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Amount (PHP)", { exact: true }).fill("200");
+  await dialog
+    .getByRole("combobox", { name: /^Category Choose a suggestion/ })
+    .fill("Cigarettes");
+  await dialog
+    .getByLabel("Description (optional)", { exact: true })
+    .fill("Pack purchase");
+  await dialog
+    .getByRole("button", { name: "Save transaction", exact: true })
+    .click();
+  await expect(dialog).not.toBeVisible();
+  await expect(page.getByTestId("budget-spent")).toContainText("212.00");
+  await page.locator("summary").filter({ hasText: "Balance, savings" }).click();
+  await page
+    .getByLabel("Include cigarette logs as automatic expenses", { exact: true })
+    .uncheck();
+  await page.getByRole("button", { name: "Save budget", exact: true }).click();
+  await expect(page.getByTestId("budget-spent")).toContainText("200.00");
+  await page.reload();
+  await expect(page.getByTestId("budget-spent")).toContainText("200.00");
+  await page.locator("summary").filter({ hasText: "Balance, savings" }).click();
+  await page
+    .getByLabel("Include cigarette logs as automatic expenses", { exact: true })
+    .check();
+  await page.getByRole("button", { name: "Save budget", exact: true }).click();
+  await expect(page.getByTestId("budget-spent")).toContainText("212.00");
 });
 
 test("validates, reviews, and restores an exported backup", async ({

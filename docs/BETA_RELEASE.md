@@ -82,3 +82,7 @@ The IndexedDB version-3 upgrade adds device-local tables and goal history. Rolli
 ## External public-launch gates
 
 Catalog retail verification, professional health-copy review, privacy/retention/vendor review, physical-device results, real-host header verification, configured operational alerts, and a reviewed rollback candidate remain required before declaring a public launch. These need evidence and resources outside local code changes. Any future cloud setup must apply the new migration before syncing goal-history payloads.
+
+## General budget extension
+
+The general finance tracker adds IndexedDB version 4, local income/expense records, all-category budgets, and financial JSON backups. See [BUDGET_TRACKER.md](BUDGET_TRACKER.md) for calculation and source semantics. Rollback builds must support database version 4; do not roll back to a version-3-only client. Financial records are device-local and are not included in optional account sync.
