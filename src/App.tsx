@@ -30,13 +30,14 @@ import {
   Leaf,
   Menu,
   Cloud,
+  User,
 } from "lucide-react";
 import { AppContext } from "./context";
 import { readState, saveLog, setDeleted } from "./db";
 import { catalog, defaults, perStick, localDateTime } from "./domain";
 import type { CigaretteLog, View } from "./domain";
 import { Logo, Modal } from "./ui";
-import { OnboardingDialog, LogDialog } from "./dialogs";
+import { OnboardingDialog, LogDialog, QuickPriceDialog } from "./dialogs";
 import { NotificationManager } from "./NotificationManager";
 import { NotificationInbox } from "./NotificationInbox";
 import { db } from "./db";
@@ -49,9 +50,6 @@ const Dashboard = lazy(() =>
 );
 const History = lazy(() =>
   import("./pages").then((module) => ({ default: module.History })),
-);
-const Lungs = lazy(() =>
-  import("./pages").then((module) => ({ default: module.Lungs })),
 );
 const Insights = lazy(() =>
   import("./pages").then((module) => ({ default: module.Insights })),
@@ -68,17 +66,20 @@ const LibraryPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import("./pages").then((module) => ({ default: module.SettingsPage })),
 );
+const ProfilePage = lazy(() =>
+  import("./ProfilePage").then((module) => ({ default: module.ProfilePage })),
+);
 
 const nav = [
   { id: "home", label: "Overview", icon: House },
   { id: "log", label: "My diary", icon: List },
-  { id: "lungs", label: "Lung Studio", icon: Wind },
+  { id: "budget", label: "Budget", icon: Wallet },
   { id: "insights", label: "Insights", icon: ChartNoAxesCombined },
   { id: "goals", label: "Goals & streaks", icon: Flag },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "library", label: "Brand library", icon: Library },
-  { id: "budget", label: "Budget", icon: Wallet },
   { id: "account", label: "Account & sync", icon: Cloud },
+  { id: "profile", label: "Profile", icon: User },
 ] as const;
 function viewFromURL(): View {
   const value = new URLSearchParams(window.location.search).get("view");
@@ -96,9 +97,9 @@ export default function App() {
   const [view, setView] = useState<View>(viewFromURL);
   const [now, setNow] = useState(new Date());
   const [offline, setOffline] = useState(!navigator.onLine);
-  const [dialog, setDialog] = useState<"onboard" | "log" | "install" | null>(
-    null,
-  );
+  const [dialog, setDialog] = useState<
+    "onboard" | "log" | "customPrice" | "install" | null
+  >(null);
   const [editLog, setEditLog] = useState<CigaretteLog>();
   const [logDate, setLogDate] = useState<string>();
   const [pendingLog, setPendingLog] = useState(false);
@@ -111,6 +112,27 @@ export default function App() {
   } | null>(null);
   const [installPrompt, setInstallPrompt] = useState<InstallEvent | null>(null);
   const [logging, setLogging] = useState(false);
+  const [avatarColor, setAvatarColor] = useState<string>(() => {
+    try {
+      return localStorage.getItem("baga_profile_avatar_color") || "";
+    } catch {
+      return "";
+    }
+  });
+
+  useEffect(() => {
+    const onAvatarUpdate = () => {
+      try {
+        setAvatarColor(localStorage.getItem("baga_profile_avatar_color") || "");
+      } catch {}
+    };
+    window.addEventListener("baga-avatar-update", onAvatarUpdate);
+    window.addEventListener("storage", onAvatarUpdate);
+    return () => {
+      window.removeEventListener("baga-avatar-update", onAvatarUpdate);
+      window.removeEventListener("storage", onAvatarUpdate);
+    };
+  }, []);
   const [inboxOpen, setInboxOpen] = useState(false);
   const unread =
     useLiveQuery(
@@ -196,8 +218,11 @@ export default function App() {
       "",
       target === "home" ? "/" : `/?view=${target}`,
     );
-    window.scrollTo({ top: 0 });
-    requestAnimationFrame(() => heading.current?.focus());
+    window.scrollTo({ top: 0, left: 0 });
+    requestAnimationFrame(() => {
+      heading.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, left: 0 });
+    });
   }, []);
   const openLog = (existing?: CigaretteLog, date?: string) => {
     if (!state?.preferences.onboarded) {
@@ -216,8 +241,19 @@ export default function App() {
       setDialog("onboard");
       return;
     }
-    setLogging(true);
     const p = state.preferences;
+    if (p.customPricePrompt) {
+      setEditLog(undefined);
+      setLogDate(undefined);
+      setDialog("customPrice");
+      return;
+    }
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(20);
+      } catch {}
+    }
+    setLogging(true);
     const variant = [...catalog, ...state.customVariants].find(
       (v) => v.id === p.favoriteId,
     );
@@ -257,7 +293,10 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 30_000);
     const online = () => setOffline(!navigator.onLine);
-    const pop = () => setView(viewFromURL());
+    const pop = () => {
+      setView(viewFromURL());
+      window.scrollTo({ top: 0, left: 0 });
+    };
     const ready = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as InstallEvent);
@@ -300,7 +339,6 @@ export default function App() {
   const pages = {
     home: Dashboard,
     log: History,
-    lungs: Lungs,
     insights: Insights,
     goals: Goals,
     calendar: Calendar,
@@ -308,6 +346,7 @@ export default function App() {
     settings: SettingsPage,
     budget: BudgetPage,
     account: AccountPage,
+    profile: ProfilePage,
   };
   const Page = pages[view];
   const welcome =
@@ -380,18 +419,30 @@ export default function App() {
             <Settings size={19} />
             <span>Settings</span>
           </button>
-          <div className="sidebar-profile">
-            <div className="avatar">
+          <button
+            type="button"
+            className="sidebar-profile-btn"
+            onClick={() => navigate("profile")}
+            aria-label="Open profile"
+          >
+            <div
+              className="avatar"
+              style={
+                avatarColor
+                  ? { backgroundColor: avatarColor, color: "#111614" }
+                  : undefined
+              }
+            >
               {p.name ? p.name[0].toUpperCase() : "Y"}
             </div>
             <div>
               <strong>{p.name || "Your personal space"}</strong>
               <span>
-                Private, by default
+                Local Profile
                 <ShieldCheck size={11} />
               </span>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
       <div className="main-shell">
@@ -447,8 +498,13 @@ export default function App() {
             </button>
             <button
               className="topbar-avatar"
-              aria-label="Open settings"
-              onClick={() => navigate("settings")}
+              aria-label="Open profile"
+              style={
+                avatarColor
+                  ? { backgroundColor: avatarColor, color: "#111614" }
+                  : undefined
+              }
+              onClick={() => navigate("profile")}
             >
               {p.name ? p.name[0].toUpperCase() : "Y"}
             </button>
@@ -540,6 +596,9 @@ export default function App() {
                     close={() => setDialog(null)}
                   />
                 )}
+                {dialog === "customPrice" && (
+                  <QuickPriceDialog close={() => setDialog(null)} />
+                )}
               </AppContext.Provider>
             )
           )}
@@ -562,13 +621,7 @@ export default function App() {
           >
             <Icon size={21} />
             <span>
-              {id === "home"
-                ? "Home"
-                : id === "log"
-                  ? "Diary"
-                  : id === "lungs"
-                    ? "Lungs"
-                    : label}
+              {id === "home" ? "Home" : id === "log" ? "Diary" : label}
             </span>
           </button>
         ))}
@@ -615,7 +668,7 @@ export default function App() {
       >
         {notification && (
           <div
-            className={`toast ${notification.error ? "error" : ""}`}
+            className={`toast ${notification.error ? "error" : ""} ${notification.undo ? "has-undo" : ""}`}
             role={notification.error ? "alert" : "status"}
           >
             <span className="toast-icon">
@@ -644,6 +697,7 @@ export default function App() {
             >
               <X size={16} />
             </button>
+            {notification.undo && <div className="toast-countdown-bar" />}
           </div>
         )}
       </div>

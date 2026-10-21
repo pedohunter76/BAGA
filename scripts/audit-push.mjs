@@ -42,10 +42,12 @@ try {
     ],
     ["audit", "--audit-level=high"],
   ]) {
-    const result = spawnSync("npm", [...args, "--cache", cache], {
+    const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+    const result = spawnSync(npmCmd, [...args, "--cache", cache], {
       cwd: directory,
       stdio: "inherit",
       env: process.env,
+      shell: process.platform === "win32",
     });
     if (result.status !== 0) {
       process.exitCode = result.status || 1;

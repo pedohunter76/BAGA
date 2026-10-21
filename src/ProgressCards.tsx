@@ -1,8 +1,16 @@
-import { Award } from "lucide-react";
+import { Award, Leaf, Flame, CheckCheck, Sparkles } from "lucide-react";
 import { useApp } from "./context";
 import { dayKey, money } from "./domain";
 import { milestones, patterns } from "./progress";
 import { CardTitle } from "./ui";
+
+function getMilestoneIcon(id: string) {
+  if (id.startsWith("free")) return Leaf;
+  if (id.startsWith("limit") || id.startsWith("within")) return Flame;
+  if (id === "checkins" || id === "first") return CheckCheck;
+  return Award;
+}
+
 export function MilestoneCards() {
   const { logs, checkins, preferences: p, now } = useApp();
   const rows = milestones(logs, checkins, p, dayKey(now, p.timezone));
@@ -11,22 +19,25 @@ export function MilestoneCards() {
       <CardTitle
         title="Small milestones"
         subtitle="Progress comes from awareness and your chosen goals. Recording a cigarette never earns an achievement."
-        action={<Award size={22} />}
+        action={<Sparkles size={22} />}
       />
       <div className="milestone-grid">
-        {rows.map((row) => (
-          <article
-            key={row.id}
-            className={`milestone-card ${row.unlocked ? "unlocked" : ""}`}
-          >
-            <Award size={24} />
-            <span className="pill">
-              {row.unlocked ? "Unlocked" : row.progress}
-            </span>
-            <h3>{row.title}</h3>
-            <p>{row.description}</p>
-          </article>
-        ))}
+        {rows.map((row) => {
+          const Icon = getMilestoneIcon(row.id);
+          return (
+            <article
+              key={row.id}
+              className={`milestone-card ${row.unlocked ? "unlocked" : ""}`}
+            >
+              <Icon size={24} />
+              <span className="pill">
+                {row.unlocked ? "Unlocked" : row.progress}
+              </span>
+              <h3>{row.title}</h3>
+              <p>{row.description}</p>
+            </article>
+          );
+        })}
       </div>
       <p className="settings-copy">
         Milestones recalculate when history changes. Missing days never count as

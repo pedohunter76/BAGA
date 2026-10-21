@@ -25,7 +25,9 @@ import {
   Sparkles,
   CalendarDays,
   CheckCheck,
+  Share2,
 } from "lucide-react";
+import { ShareProgressDialog } from "./dialogs";
 import { useApp } from "./context";
 import { exportDiagnostics } from "./diagnostics";
 import { goalOnDate } from "./goals";
@@ -51,8 +53,22 @@ import {
 } from "./domain";
 import type { CigaretteLog, Preferences } from "./domain";
 import { PageTitle, CardTitle, Empty, TextLink, Field, Modal } from "./ui";
-import LungModel from "./LungModel";
 import { ActivityChart } from "./charts";
+import { CigaretteTracker } from "./CigaretteTracker";
+
+function formatSmokeFree(elapsedMinutes: number) {
+  if (elapsedMinutes < 1) return "Just smoked";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m smoke-free`;
+  const hours = Math.floor(elapsedMinutes / 60);
+  const mins = elapsedMinutes % 60;
+  if (hours < 24)
+    return mins > 0 ? `${hours}h ${mins}m smoke-free` : `${hours}h smoke-free`;
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  return remHours > 0
+    ? `${days}d ${remHours}h smoke-free`
+    : `${days}d smoke-free`;
+}
 
 function useStats() {
   const { preferences: p, logs, checkins, now } = useApp();
@@ -231,6 +247,7 @@ export function Dashboard() {
     openLog,
     openOnboarding,
   } = useApp();
+  const [shareOpen, setShareOpen] = useState(false);
   const s = useStats();
   const favorite = [...catalog, ...useApp().customVariants].find(
     (v) => v.id === p.favoriteId,
@@ -256,12 +273,14 @@ export function Dashboard() {
         Math.floor((now.getTime() - Date.parse(latest.smokedAt)) / 60_000),
       )
     : 0;
+  const avoidedToday = p.baseline > 0 ? Math.max(0, p.baseline - s.count) : 0;
+  const moneySavedToday = avoidedToday * perStick(p);
   return (
     <>
       <PageTitle
         eyebrow="A LITTLE AWARENESS, EVERY DAY"
         title={p.name ? `One day at a time, ${p.name}.` : "One day at a time."}
-        description="Your lungs. Your habits. Your progress."
+        description="Your daily breath. Your habits. Your progress."
         action={
           <button
             className="button secondary compact"
@@ -272,37 +291,14 @@ export function Dashboard() {
           </button>
         }
       />
-      {!p.onboarded && (
-        <div className="welcome-banner">
-          <span className="welcome-symbol">
-            <Sparkles size={20} />
-          </span>
-          <div>
-            <strong>Your journey, your pace.</strong>
-            <span>
-              Choose your goal and usual brand. No account. No pressure.
-            </span>
-          </div>
-          <button onClick={openOnboarding}>
-            Make it yours
-            <ArrowRight size={17} />
-          </button>
-        </div>
-      )}
       <div className="dashboard-hero">
         <section className={`card daily-card ${over ? "limit-reached" : ""}`}>
           <CardTitle
             title="Today’s overview"
             action={
-              <span className="pill">
-                <span className="status-dot" />
-                {!p.onboarded
-                  ? "A fresh start"
-                  : p.goalMode === "track"
-                    ? "Tracking only"
-                    : over
-                      ? "Time to pause"
-                      : "At your own pace"}
+              <span className="smoke-free-timer">
+                <Clock3 size={12} />
+                {latest ? formatSmokeFree(elapsed) : "Clean slate"}
               </span>
             }
           />
@@ -341,50 +337,39 @@ export function Dashboard() {
                 </span>
               </div>
             </div>
-            <div className="daily-summary">
-              <span className="small-caps">A MOMENT FOR YOU</span>
-              <h2>
-                {s.count === 0 ? (
-                  <>
-                    A new day.
-                    <br />A little more space.
-                  </>
-                ) : over ? (
-                  <>
-                    Pause. Breathe.
-                    <br />
-                    Keep moving forward.
-                  </>
-                ) : (
-                  <>
-                    Small steps.
-                    <br />
-                    At your own pace.
-                  </>
-                )}
-              </h2>
-              <p>
-                {!p.onboarded ? (
-                  "Get to know your habits, one honest check-in at a time."
-                ) : p.goalMode === "track" ? (
-                  "A clear picture of your day, without the pressure of a target."
-                ) : over ? (
-                  "You’ve reached your chosen limit. Your next choice is a fresh opportunity."
-                ) : (
-                  <>
-                    <strong>{remaining} remaining</strong> before your chosen
-                    limit. A limit is a ceiling, never a target to reach.
-                  </>
-                )}
-              </p>
-              <div className="last-log">
-                <Clock3 size={14} />
-                {latest
-                  ? `${elapsed >= 60 ? `${Math.floor(elapsed / 60)}h ${elapsed % 60}m` : `${elapsed}m`} since your last record`
-                  : "Your diary is ready when you are"}
-              </div>
-            </div>
+            <CigaretteTracker
+              count={s.count}
+              dailyLimit={p.dailyLimit}
+              goalMode={p.goalMode}
+              onboarded={p.onboarded}
+            />
           </div>
+          {p.onboarded && p.baseline > 0 && avoidedToday > 0 && (
+            <div className="daily-savings-strip">
+              <div className="savings-strip-left">
+                <span className="savings-icon-pill">
+                  <Wallet size={15} />
+                </span>
+                <div className="savings-strip-text">
+                  <span className="savings-amount">
+                    {money(moneySavedToday)} saved today
+                  </span>
+                  <span className="savings-detail">
+                    {avoidedToday} stick{avoidedToday > 1 ? "s" : ""} under
+                    baseline
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="savings-share-chip"
+                onClick={() => setShareOpen(true)}
+              >
+                <Share2 size={13} />
+                <span>Share</span>
+              </button>
+            </div>
+          )}
           <div className="daily-card-footer">
             <button className="button primary quick-log" onClick={quickLog}>
               <Plus size={20} />
@@ -400,37 +385,29 @@ export function Dashboard() {
           </div>
           <p className="favorite-caption">
             {p.onboarded
-              ? `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · ${money(perStick(p))} / stick`
+              ? p.customPricePrompt
+                ? `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · Custom store price on log`
+                : `${favorite?.brand || "Custom"} · ${favorite?.name || ""} · ${money(perStick(p))} / stick`
               : "Set up your favorite for one-tap logging"}
             <span>Undo after a quick log</span>
           </p>
+          <div className="urge-surf-banner">
+            <button
+              type="button"
+              className="urge-btn"
+              onClick={() => navigate("budget")}
+            >
+              <span className="urge-btn-icon">
+                <Wind size={16} />
+              </span>
+              <span className="urge-btn-copy">
+                <strong>Make room for your savings</strong>
+                <small>Track your budget and spending automatically</small>
+              </span>
+              <ChevronRight size={16} className="urge-btn-arrow" />
+            </button>
+          </div>
         </section>
-        {p.showLungs && (
-          <section className="card lung-preview">
-            <CardTitle
-              title="A breath of awareness"
-              action={<span className="pill subdued">Illustrative</span>}
-            />
-            <LungModel animation={p.animation} intensity={p.intensity} />
-            <div className="lung-preview-bottom">
-              <div>
-                <h3>Get to know your lungs.</h3>
-                <p>A little perspective, beyond the numbers.</p>
-              </div>
-              <button
-                className="circle-link"
-                aria-label="Explore Lung Studio"
-                onClick={() => navigate("lungs")}
-              >
-                <ArrowUpRight size={22} />
-              </button>
-            </div>
-            <p className="lung-disclaimer">
-              <Info size={12} />
-              Educational illustration. Not a clinical lung scan.
-            </p>
-          </section>
-        )}
       </div>
       <div className={`stats-grid ${!p.showSpending ? "two" : ""}`}>
         <section className="card stat-card">
@@ -497,6 +474,7 @@ export function Dashboard() {
               <small>{s.smokeFree === 1 ? "day" : "days"}</small>
             </strong>
             <p>Confirmed days. Every one counts.</p>
+            <CheckinButton className="button secondary compact checkin-stat-btn" />
           </div>
           <button
             className="stat-link"
@@ -541,48 +519,6 @@ export function Dashboard() {
             <span>Progress begins with noticing.</span>
           </div>
         </section>
-        <section className="card activity-card">
-          <CardTitle
-            title="Today’s diary"
-            action={
-              <TextLink onClick={() => navigate("log")}>See all</TextLink>
-            }
-          />
-          {s.records.length ? (
-            <div className="recent-logs">
-              {[...s.records]
-                .sort((a, b) => b.smokedAt.localeCompare(a.smokedAt))
-                .slice(0, 3)
-                .map((log) => (
-                  <LogRow key={log.id} log={log} />
-                ))}
-            </div>
-          ) : (
-            <Empty title="A clean page for today.">
-              Your records will appear here.
-              <br />
-              No cigarettes? That’s a check-in, too.
-            </Empty>
-          )}
-          <div className={`checkin-card ${s.checked ? "completed" : ""}`}>
-            <span className="checkin-icon">
-              {s.checked ? <CheckCheck size={21} /> : <Check size={21} />}
-            </span>
-            <div>
-              <strong>
-                {s.checked
-                  ? "You’ve checked in today."
-                  : "No smoking is progress, too."}
-              </strong>
-              <p>
-                {s.checked
-                  ? "Your diary and streaks are up to date."
-                  : "Mark a smoke-free day or confirm your diary."}
-              </p>
-            </div>
-            <CheckinButton className="checkin-action" />
-          </div>
-        </section>
       </div>
       <div className="gentle-note">
         <span>✦</span>
@@ -592,6 +528,9 @@ export function Dashboard() {
         </p>
         <span>ONE DAY AT A TIME</span>
       </div>
+      {shareOpen && (
+        <ShareProgressDialog close={() => setShareOpen(false)} stats={s} />
+      )}
     </>
   );
 }
@@ -728,384 +667,6 @@ export function History() {
   );
 }
 
-export function Lungs() {
-  const { preferences: p, measurements, logs, perform, now } = useApp();
-  const [mode, setMode] = useState<"education" | "capacity" | "exposure">(
-    "education",
-  );
-  const [intensity, setIntensity] = useState(p.intensity);
-  const [animation, setAnimation] = useState(p.animation);
-  const [value, setValue] = useState("");
-  const [reference, setReference] = useState("5");
-  const [source, setSource] = useState("Manual entry");
-  const [type, setType] = useState<"Volume" | "FVC" | "FEV1">("Volume");
-  const [measuredAt, setMeasuredAt] = useState(
-    localDateTime(now.toISOString(), p.timezone),
-  );
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const latest = [...measurements].sort((a, b) =>
-    b.measuredAt.localeCompare(a.measuredAt),
-  )[0];
-  const total = activeLogs(logs).reduce((n, log) => n + log.quantity, 0);
-  return (
-    <>
-      <PageTitle
-        eyebrow="A BREATH OF PERSPECTIVE"
-        title="Your Lung Studio."
-        description="Explore the anatomy. Record your measurements. Keep the two separate."
-      />
-      <div className="tab-list" role="tablist" aria-label="Lung Studio modes">
-        {(
-          [
-            ["education", "Educational model"],
-            ["capacity", "My measurements"],
-            ["exposure", "Recorded exposure"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            role="tab"
-            tabIndex={mode === key ? 0 : -1}
-            onKeyDown={(e) => {
-              const keys = ["education", "capacity", "exposure"] as const;
-              const i = keys.indexOf(key);
-              const next =
-                e.key === "ArrowRight"
-                  ? (i + 1) % 3
-                  : e.key === "ArrowLeft"
-                    ? (i + 2) % 3
-                    : e.key === "Home"
-                      ? 0
-                      : e.key === "End"
-                        ? 2
-                        : -1;
-              if (next >= 0) {
-                e.preventDefault();
-                setMode(keys[next]);
-                document.getElementById(`tab-${keys[next]}`)?.focus();
-              }
-            }}
-            aria-selected={mode === key}
-            aria-controls={`panel-${key}`}
-            id={`tab-${key}`}
-            key={key}
-            onClick={() => setMode(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id={`panel-${mode}`} aria-labelledby={`tab-${mode}`}>
-        {mode === "education" && (
-          <div className="studio-grid">
-            <section className="card studio-model">
-              <CardTitle
-                title="Room for a little curiosity"
-                action={<span className="pill subdued">Educational only</span>}
-              />
-              <LungModel
-                animation={animation}
-                intensity={intensity}
-                interactive
-              />
-              <p className="fine-print">
-                Front-view stylized anatomy. Select a lung or the airways to
-                explore.
-              </p>
-            </section>
-            <div className="studio-controls">
-              <section className="card">
-                <CardTitle
-                  title="Make the illustration yours"
-                  subtitle="These controls change the drawing, never your health records."
-                />
-                <Field
-                  label={`Illustration intensity · ${intensity}%`}
-                  hint="A visual effect only. This percentage is not lung damage."
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={intensity}
-                    onChange={(e) => setIntensity(Number(e.target.value))}
-                  />
-                </Field>
-                <label className="toggle-row">
-                  <div>
-                    <strong>Breathing animation</strong>
-                    <small>
-                      Respects your device’s reduced-motion setting.
-                    </small>
-                  </div>
-                  <input
-                    type="checkbox"
-                    role="switch"
-                    checked={animation}
-                    onChange={(e) => setAnimation(e.target.checked)}
-                  />
-                </label>
-                <button
-                  className="button secondary full"
-                  onClick={() => {
-                    void perform(
-                      () => savePreferences({ ...p, intensity, animation }),
-                      "Studio preferences saved.",
-                    );
-                  }}
-                >
-                  Save studio preferences
-                </button>
-              </section>
-              <div className="education-note">
-                <Wind size={27} />
-                <h3>A picture, not a diagnosis.</h3>
-                <p>
-                  Smoking records cannot determine your lung capacity, damage,
-                  or disease risk. This model doesn’t represent your actual
-                  lungs.
-                </p>
-                <p>
-                  For questions about your breathing or test results, speak with
-                  a qualified health professional.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        {mode === "capacity" && (
-          <div className="studio-grid">
-            <section className="card">
-              <CardTitle
-                title="Your entered measurements"
-                subtitle="User-entered values, kept exactly as you record them."
-              />
-              {latest ? (
-                <>
-                  <div className="capacity-number">
-                    <span>
-                      {latest.type} · {latest.source}
-                    </span>
-                    <strong>
-                      {latest.value}
-                      <small>L</small>
-                    </strong>
-                    <p>{dayKey(latest.measuredAt, p.timezone)}</p>
-                  </div>
-                  <div className="capacity-comparison">
-                    <span>Entered value / chosen reference</span>
-                    <strong>
-                      {((latest.value / latest.reference) * 100).toFixed(1)}%
-                    </strong>
-                    <div className="progress-track">
-                      <i
-                        style={{
-                          width: `${Math.min((latest.value / latest.reference) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <small>
-                      Reference: {latest.reference} L · selected by you
-                    </small>
-                  </div>
-                  <div className="notice">
-                    <Info size={18} />
-                    <span>
-                      This arithmetic comparison is not a clinical
-                      interpretation or a predicted lung-capacity percentage.
-                    </span>
-                  </div>
-                  <h3 className="form-section-label">Measurement history</h3>
-                  {[...measurements]
-                    .sort((a, b) => b.measuredAt.localeCompare(a.measuredAt))
-                    .map((m) => (
-                      <div className="measurement-row" key={m.id}>
-                        <div>
-                          <strong>
-                            {m.type} · {m.value} L
-                          </strong>
-                          <small>
-                            {dayKey(m.measuredAt, p.timezone)} · {m.source} ·
-                            ref {m.reference} L
-                          </small>
-                        </div>
-                        {confirmDelete === m.id ? (
-                          <button
-                            className="button danger compact"
-                            onClick={async () => {
-                              if (
-                                await perform(
-                                  () => db.measurements.delete(m.id),
-                                  "Measurement deleted.",
-                                )
-                              )
-                                setConfirmDelete(null);
-                            }}
-                          >
-                            Confirm delete
-                          </button>
-                        ) : (
-                          <button
-                            className="icon-button"
-                            aria-label={`Delete ${m.type} measurement`}
-                            onClick={() => setConfirmDelete(m.id)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                </>
-              ) : (
-                <Empty title="No measurements yet.">
-                  No estimate will be invented. Add a measured or manually
-                  entered value when you have one.
-                </Empty>
-              )}
-            </section>
-            <section className="card">
-              <CardTitle
-                title="Add a measurement"
-                subtitle="Liters only. Nothing here is inferred from your cigarette diary."
-              />
-              <form
-                className="form-stack"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (
-                    await perform(
-                      () =>
-                        saveMeasurement({
-                          type,
-                          value: Number(value),
-                          reference: Number(reference),
-                          unit: "L",
-                          source,
-                          measuredAt: fromLocalDateTime(measuredAt, p.timezone),
-                        }),
-                      "Measurement saved on this device.",
-                    )
-                  )
-                    setValue("");
-                }}
-              >
-                <Field label="Measurement type">
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as typeof type)}
-                  >
-                    <option>Volume</option>
-                    <option>FVC</option>
-                    <option>FEV1</option>
-                  </select>
-                </Field>
-                <div className="form-grid">
-                  <Field label="Entered value (L)">
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      max="10"
-                      step="0.01"
-                      placeholder="e.g. 4.3"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Your comparison reference (L)">
-                    <input
-                      type="number"
-                      required
-                      min="0.01"
-                      max="10"
-                      step="0.01"
-                      value={reference}
-                      onChange={(e) => setReference(e.target.value)}
-                    />
-                  </Field>
-                </div>
-                <Field label="Source">
-                  <input
-                    required
-                    value={source}
-                    maxLength={100}
-                    onChange={(e) => setSource(e.target.value)}
-                    placeholder="Manual entry or test report"
-                  />
-                </Field>
-                <Field label={`Measured at · ${p.timezone}`}>
-                  <input
-                    required
-                    type="datetime-local"
-                    value={measuredAt}
-                    max={localDateTime(new Date().toISOString(), p.timezone)}
-                    onChange={(e) => setMeasuredAt(e.target.value)}
-                  />
-                </Field>
-                <p className="fine-print">
-                  The reference is a number you choose, not a medical normal
-                  value. BAGA does not interpret spirometry.
-                </p>
-                <button className="button primary">
-                  <Plus size={18} />
-                  Save measurement
-                </button>
-              </form>
-            </section>
-          </div>
-        )}
-        {mode === "exposure" && (
-          <>
-            <div className="stats-grid">
-              <section className="card metric-card">
-                <Cigarette size={23} />
-                <span>Total cigarettes recorded</span>
-                <strong>{total.toLocaleString()}</strong>
-                <p>Only the records in your local diary.</p>
-              </section>
-              <section className="card metric-card">
-                <CalendarDays size={23} />
-                <span>Days with records</span>
-                <strong>
-                  {
-                    new Set(
-                      activeLogs(logs).map((log) =>
-                        dayKey(log.smokedAt, p.timezone),
-                      ),
-                    ).size
-                  }
-                </strong>
-                <p>Missing days are not zero-cigarette days.</p>
-              </section>
-              <section className="card metric-card">
-                <Wind size={23} />
-                <span>Recorded pack-year equivalent</span>
-                <strong>{(total / 20 / 365).toFixed(4)}</strong>
-                <p>Recorded cigarettes ÷ 20 ÷ 365.</p>
-              </section>
-            </div>
-            <div className="notice">
-              <Info size={18} />
-              <span>
-                This covers recorded cigarettes only, not lifetime exposure.
-                Pack-years describe exposure, not lung damage or disease risk.
-              </span>
-            </div>
-            <section className="card">
-              <CardTitle
-                title="Your recorded timeline"
-                subtitle="The last 30 days. Blank days may be untracked."
-              />
-              <ActivityChart
-                data={series(logs, dayKey(now, p.timezone), p.timezone, 30)}
-              />
-            </section>
-          </>
-        )}
-      </div>
-    </>
-  );
-}
-
 export function Insights() {
   const { logs, preferences: p, now, checkins } = useApp();
   const [period, setPeriod] = useState<7 | 30 | 365>(7);
@@ -1155,6 +716,94 @@ export function Insights() {
           };
         })
       : data;
+
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+  const weekdayNames = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ] as const;
+  const weekdayStats = weekdays.map((abbr, index) => {
+    const matchingDays = data.filter((d) => {
+      const idx = (new Date(`${d.date}T12:00:00Z`).getUTCDay() + 6) % 7;
+      return idx === index;
+    });
+    const occurrences = matchingDays.length;
+    const dayCount = matchingDays.reduce((sum, d) => sum + d.count, 0);
+    const daySpent = matchingDays.reduce((sum, d) => sum + d.spent, 0);
+    const average = occurrences > 0 ? dayCount / occurrences : 0;
+    return {
+      abbr,
+      fullName: weekdayNames[index],
+      occurrences,
+      count: dayCount,
+      spent: daySpent,
+      average,
+    };
+  });
+  const maxWeekdayAvg = Math.max(...weekdayStats.map((w) => w.average), 0);
+  const peakWeekday =
+    maxWeekdayAvg > 0
+      ? weekdayStats.find((w) => w.average === maxWeekdayAvg)
+      : null;
+
+  const hourFormat = new Intl.DateTimeFormat("en", {
+    timeZone: p.timezone,
+    hour: "numeric",
+    hourCycle: "h23",
+  });
+  const timeWindows = [
+    {
+      id: "morning",
+      label: "Morning",
+      range: "06:00 – 11:59",
+      hours: [6, 7, 8, 9, 10, 11],
+      icon: "🌅",
+    },
+    {
+      id: "afternoon",
+      label: "Afternoon",
+      range: "12:00 – 17:59",
+      hours: [12, 13, 14, 15, 16, 17],
+      icon: "☀️",
+    },
+    {
+      id: "evening",
+      label: "Evening",
+      range: "18:00 – 21:59",
+      hours: [18, 19, 20, 21],
+      icon: "🌙",
+    },
+    {
+      id: "night",
+      label: "Night",
+      range: "22:00 – 05:59",
+      hours: [22, 23, 0, 1, 2, 3, 4, 5],
+      icon: "🌌",
+    },
+  ];
+  const windowStats = timeWindows.map((win) => {
+    const winCount = relevant.reduce((sum, log) => {
+      const h = Number(hourFormat.format(new Date(log.smokedAt)));
+      return win.hours.includes(h) ? sum + log.quantity : sum;
+    }, 0);
+    const pct = count > 0 ? (winCount / count) * 100 : 0;
+    return {
+      ...win,
+      count: winCount,
+      percentage: pct,
+    };
+  });
+  const maxWindowCount = Math.max(...windowStats.map((w) => w.count), 0);
+  const peakWindow =
+    maxWindowCount > 0
+      ? windowStats.find((w) => w.count === maxWindowCount)
+      : null;
+
   return (
     <>
       <PageTitle
@@ -1294,6 +943,111 @@ export function Insights() {
           )}
         </section>
       </div>
+      <div className="two-column routine-insights-grid">
+        <section className="card">
+          <CardTitle
+            title="Day of the week routine"
+            subtitle={`Average cigarettes per day over ${period} days · ${p.timezone}`}
+          />
+          {count > 0 ? (
+            <div className="weekday-routine-container">
+              {peakWeekday && (
+                <div className="routine-peak-banner">
+                  <Flame size={15} />
+                  <span>
+                    Peak day: <strong>{peakWeekday.fullName}</strong> averaging{" "}
+                    <strong>{peakWeekday.average.toFixed(1)}</strong> sticks
+                  </span>
+                </div>
+              )}
+              <div
+                className="weekday-bars"
+                role="img"
+                aria-label="Day of week distribution"
+              >
+                {weekdayStats.map((w) => {
+                  const isPeak = peakWeekday?.abbr === w.abbr && w.count > 0;
+                  const barHeight =
+                    maxWeekdayAvg > 0
+                      ? Math.max(8, (w.average / maxWeekdayAvg) * 100)
+                      : 8;
+                  return (
+                    <div
+                      key={w.abbr}
+                      className={`weekday-col ${isPeak ? "is-peak" : ""}`}
+                    >
+                      <span className="weekday-val">
+                        {w.average > 0 ? w.average.toFixed(1) : "0"}
+                      </span>
+                      <div className="weekday-bar-track">
+                        <i style={{ height: `${barHeight}%` }} />
+                      </div>
+                      <strong className="weekday-label">{w.abbr}</strong>
+                      <small className="weekday-sub">{w.count} sticks</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <Empty title="Habit patterns over the week">
+              Log your cigarettes to see which days of the week are your
+              heaviest.
+            </Empty>
+          )}
+        </section>
+
+        <section className="card">
+          <CardTitle
+            title="Time of day distribution"
+            subtitle={`Routine windows across 24 hours · ${period} days`}
+          />
+          {count > 0 ? (
+            <div className="time-windows-container">
+              {peakWindow && (
+                <div className="routine-peak-banner">
+                  <Clock3 size={15} />
+                  <span>
+                    Primary window: <strong>{peakWindow.label}</strong> (
+                    <strong>{Math.round(peakWindow.percentage)}%</strong> of all
+                    cigarettes)
+                  </span>
+                </div>
+              )}
+              <div className="time-windows-list">
+                {windowStats.map((win) => {
+                  const isPeak = peakWindow?.id === win.id && win.count > 0;
+                  return (
+                    <div
+                      key={win.id}
+                      className={`time-window-item ${isPeak ? "is-peak" : ""}`}
+                    >
+                      <div className="time-window-header">
+                        <div className="time-window-title">
+                          <span className="time-window-icon">{win.icon}</span>
+                          <strong>{win.label}</strong>
+                          <small>{win.range}</small>
+                        </div>
+                        <div className="time-window-metrics">
+                          <strong>{win.count} sticks</strong>
+                          <span>{Math.round(win.percentage)}%</span>
+                        </div>
+                      </div>
+                      <div className="progress-track">
+                        <i style={{ width: `${win.percentage}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <Empty title="Routine windows">
+              Time of day patterns will emerge as you log cigarettes.
+            </Empty>
+          )}
+        </section>
+      </div>
       <PatternCards period={period} />
     </>
   );
@@ -1308,6 +1062,7 @@ export function Goals() {
     openOnboarding,
     now,
   } = useApp();
+  const [shareOpen, setShareOpen] = useState(false);
   const s = useStats();
   const [form, setForm] = useState({
     mode: p.goalMode,
@@ -1337,6 +1092,15 @@ export function Goals() {
         eyebrow="PROGRESS AT YOUR PACE"
         title="Small steps. Your steps."
         description="A goal should support you, never put pressure on you."
+        action={
+          <button
+            className="button secondary compact"
+            onClick={() => setShareOpen(true)}
+          >
+            <Share2 size={16} />
+            Share progress
+          </button>
+        }
       />
       <div className="stats-grid">
         <section className="card streak-card">
@@ -1586,12 +1350,23 @@ export function Goals() {
           current chosen limit.
         </span>
       </div>
+      {shareOpen && (
+        <ShareProgressDialog close={() => setShareOpen(false)} stats={s} />
+      )}
     </>
   );
 }
 
 export function Calendar() {
-  const { logs, checkins, preferences: p, now, openLog } = useApp();
+  const {
+    logs,
+    checkins,
+    preferences: p,
+    now,
+    openLog,
+    cravings,
+    navigate,
+  } = useApp();
   const today = dayKey(now, p.timezone);
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState(today);
@@ -1601,6 +1376,17 @@ export function Calendar() {
     Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0),
   ).getUTCDate();
   const totals = dayTotals(logs, selected, p.timezone);
+
+  const selectedGoal = goalOnDate(p.goalHistory ?? [], selected);
+  const selectedLimit =
+    selectedGoal !== undefined ? selectedGoal.dailyLimit : p.dailyLimit;
+  const selectedMode =
+    selectedGoal !== undefined ? selectedGoal.goalMode : p.goalMode;
+  const selectedConfirmed = checkins.some((c) => c.date === selected);
+  const selectedCravings = cravings.filter(
+    (c) => dayKey(c.at, p.timezone) === selected,
+  );
+
   function moveMonth(n: number) {
     const next = new Date(first);
     next.setUTCMonth(next.getUTCMonth() + n);
@@ -1611,7 +1397,7 @@ export function Calendar() {
       <PageTitle
         eyebrow="YOUR DAYS, IN COLOR"
         title="Your smoking calendar."
-        description="Recorded days, confirmed days, and the spaces in between."
+        description="Recorded days, confirmed smoke-free days, and daily limits in a visual habit heatmap."
       />
       <div className="calendar-layout">
         <section className="card">
@@ -1662,15 +1448,33 @@ export function Calendar() {
               const date = `${month}-${String(i + 1).padStart(2, "0")}`;
               const n = dayTotals(logs, date, p.timezone).count;
               const confirmed = checkins.some((c) => c.date === date);
+              const dayGoal = goalOnDate(p.goalHistory ?? [], date);
+              const limit =
+                dayGoal !== undefined ? dayGoal.dailyLimit : p.dailyLimit;
+              const goalMode =
+                dayGoal !== undefined ? dayGoal.goalMode : p.goalMode;
+              const isSmokeFree = confirmed && n === 0;
+              const isOverLimit = goalMode !== "track" && n > limit;
+              const isWithinLimit =
+                n > 0 && (goalMode === "track" || n <= limit);
+              const statusClass = isSmokeFree
+                ? "smoke-free"
+                : isOverLimit
+                  ? "above-limit"
+                  : isWithinLimit
+                    ? "within-limit has-records"
+                    : n > 0
+                      ? "has-records"
+                      : "untracked";
               return (
                 <button
                   key={date}
-                  className={`calendar-day ${selected === date ? "selected" : ""} ${date === today ? "is-today" : ""} ${confirmed && n === 0 ? "smoke-free" : goalOnDate(p.goalHistory ?? [], date)?.goalMode !== "track" && goalOnDate(p.goalHistory ?? [], date) !== undefined && dayTotals(logs, date, goalOnDate(p.goalHistory ?? [], date)!.timezone).count > goalOnDate(p.goalHistory ?? [], date)!.dailyLimit ? "above-limit" : n ? "has-records" : ""}`}
+                  className={`calendar-day ${selected === date ? "selected" : ""} ${date === today ? "is-today" : ""} ${statusClass}`}
                   onClick={() => setSelected(date)}
                   aria-label={`${date}, ${n} cigarettes, ${confirmed ? "checked in" : "not checked in"}`}
                 >
                   <strong>{i + 1}</strong>
-                  {confirmed && n === 0 ? (
+                  {isSmokeFree ? (
                     <Leaf size={18} />
                   ) : n ? (
                     <span>
@@ -1690,8 +1494,12 @@ export function Calendar() {
               Confirmed smoke-free
             </span>
             <span>
-              <i className="legend-dot peach" />
-              Records
+              <i className="legend-dot amber" />
+              Within limit
+            </span>
+            <span>
+              <i className="legend-dot coral" />
+              Above limit
             </span>
             <span>— Untracked</span>
           </div>
@@ -1704,13 +1512,34 @@ export function Calendar() {
               timeZone: "UTC",
             })}
             subtitle={
-              checkins.some((c) => c.date === selected)
+              selectedConfirmed
                 ? "Daily check-in completed"
                 : selected > today
                   ? "This day hasn’t arrived yet."
                   : "Check-in not completed"
             }
           />
+          <div className="calendar-day-badge-wrap">
+            {selected > today ? (
+              <span className="cal-status-pill muted">Future day</span>
+            ) : selectedConfirmed && totals.count === 0 ? (
+              <span className="cal-status-pill green">
+                Smoke-free day confirmed 🍃
+              </span>
+            ) : selectedMode !== "track" && totals.count > selectedLimit ? (
+              <span className="cal-status-pill red">
+                Above daily limit ({totals.count} / {selectedLimit})
+              </span>
+            ) : totals.count > 0 ? (
+              <span className="cal-status-pill amber">
+                {selectedMode === "track"
+                  ? `${totals.count} cigarettes recorded`
+                  : `Within daily limit (${totals.count} / ${selectedLimit})`}
+              </span>
+            ) : (
+              <span className="cal-status-pill muted">Untracked day</span>
+            )}
+          </div>
           <div className="calendar-day-total">
             <strong>{totals.count}</strong>
             <span>cigarettes recorded</span>
@@ -1719,6 +1548,32 @@ export function Calendar() {
           {totals.records.map((log) => (
             <LogRow key={log.id} log={log} />
           ))}
+          {selectedCravings.length > 0 && (
+            <div className="calendar-cravings-list">
+              <span className="calendar-subheading">
+                <Wind size={14} /> Cravings noticed ({selectedCravings.length})
+              </span>
+              {selectedCravings.map((c) => (
+                <div key={c.id} className="calendar-craving-item">
+                  <div className="calendar-craving-top">
+                    <strong>{c.trigger}</strong>
+                    <span className="pill">Intensity {c.intensity}/5</span>
+                  </div>
+                  <small>
+                    {formatTime(c.at, p.timezone)} ·{" "}
+                    {c.outcome === "passed"
+                      ? "Passed without smoking"
+                      : c.outcome === "smoked"
+                        ? "Smoked afterwards"
+                        : "Urge noted"}
+                  </small>
+                  {c.coping && (
+                    <p className="calendar-craving-note">Helped: {c.coping}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {selected <= today && (
             <>
               <CheckinButton date={selected} />
@@ -2065,6 +1920,23 @@ export function SettingsPage() {
                   onChange={(e) => update("packSize", Number(e.target.value))}
                 />
               </Field>
+              <label className="toggle-row">
+                <div>
+                  <strong>Custom price per stick on log</strong>
+                  <small>
+                    Prompt for store price each time you log because stick
+                    prices vary by store.
+                  </small>
+                </div>
+                <input
+                  type="checkbox"
+                  role="switch"
+                  checked={form.customPricePrompt}
+                  onChange={(e) =>
+                    update("customPricePrompt", e.target.checked)
+                  }
+                />
+              </label>
               <small className="muted">
                 Historical record prices remain unchanged.
               </small>
@@ -2095,11 +1967,6 @@ export function SettingsPage() {
                     "showSpending",
                     "Spending card",
                     "Show peso totals on your overview.",
-                  ],
-                  [
-                    "showLungs",
-                    "Lung preview",
-                    "Show the educational illustration on your overview.",
                   ],
                 ] as const
               ).map(([key, title, desc]) => (

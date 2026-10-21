@@ -59,8 +59,6 @@ export default defineConfig({
         shortcuts: [
           { name: "Log cigarette", url: "/?view=log" },
           { name: "My progress", url: "/?view=insights" },
-          { name: "Lung Studio", url: "/?view=lungs" },
-          { name: "Log a craving", url: "/?view=cravings" },
           { name: "My goals", url: "/?view=goals" },
         ],
       },

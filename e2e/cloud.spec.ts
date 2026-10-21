@@ -78,8 +78,6 @@ async function onboard(page: Page) {
   await dialog.getByRole("button", { name: "Continue" }).click();
   await dialog.getByLabel("What should we call you?").fill("Alex");
   await dialog.getByLabel("Price (PHP)").fill("12");
-  await dialog.getByRole("button", { name: "Continue" }).click();
-  await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Start my journey" }).click();
   await expect(dialog).not.toBeVisible();
 }

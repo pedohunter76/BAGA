@@ -10,8 +10,6 @@ async function setup(page: Page, url = "/") {
   await dialog.getByRole("button", { name: "Continue" }).click();
   await dialog.getByLabel("What should we call you?").fill("Alex");
   await dialog.getByLabel("Price (PHP)").fill("12");
-  await dialog.getByRole("button", { name: "Continue" }).click();
-  await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Start my journey" }).click();
   await expect(
     page.getByRole("heading", { name: "One day at a time, Alex." }),
@@ -109,25 +107,6 @@ test("smoke-free check-ins recalculate after a later cigarette", async ({
   await expect(smokeFree).toContainText("0");
 });
 
-test("Lung Studio stores real entries separately from illustrative settings", async ({
-  page,
-}) => {
-  await setup(page);
-  await page.goto("/?view=lungs");
-  await page.getByRole("tab", { name: "My measurements" }).click();
-  await expect(page.getByText("No measurements yet.")).toBeVisible();
-  await page.getByLabel("Entered value (L)").fill("4.3");
-  await page.getByRole("button", { name: "Save measurement" }).click();
-  await expect(page.locator(".capacity-number")).toContainText("4.3");
-  await expect(page.locator(".capacity-comparison")).toContainText("86.0%");
-  await page.getByRole("tab", { name: "Educational model" }).click();
-  await page.getByRole("slider").fill("80");
-  await page.getByRole("button", { name: "Save studio preferences" }).click();
-  await page.getByRole("tab", { name: "My measurements" }).click();
-  await expect(page.locator(".capacity-number")).toContainText("4.3");
-  await expect(page.getByText(/not a clinical interpretation/)).toBeVisible();
-});
-
 test("all screens work at mobile widths without horizontal overflow", async ({
   page,
 }) => {
@@ -136,7 +115,6 @@ test("all screens work at mobile widths without horizontal overflow", async ({
   for (const view of [
     "home",
     "log",
-    "lungs",
     "insights",
     "goals",
     "calendar",
@@ -204,7 +182,7 @@ test("storage failures never report a successful save or discard an entry", asyn
 test("core screens and onboarding pass automated WCAG checks", async ({
   page,
 }) => {
-  for (const view of ["home", "lungs", "settings", "calendar"]) {
+  for (const view of ["home", "insights", "settings", "calendar"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.locator("h1")).toBeVisible();
     const result = await new AxeBuilder({ page })
@@ -233,7 +211,7 @@ test("calendar backdating and narrow 320px layout work", async ({ page }) => {
   await expect(dateInput).toHaveValue(`${date}T12:00`);
   await page.getByRole("button", { name: "Save record" }).click();
   await expect(page.locator(".calendar-day-total")).toContainText("1");
-  for (const view of ["home", "lungs", "insights", "settings"]) {
+  for (const view of ["home", "goals", "insights", "settings"]) {
     await page.goto(`/?view=${view}`);
     await expect(page.locator("h1")).toBeVisible();
     expect(
@@ -472,10 +450,6 @@ test("welcome profile keeps drafts, requires consent, and returns users to their
   ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByLabel("What should we call you?")).toHaveValue("Sam");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await page.getByRole("button", { name: "Start my journey" }).click();
-  await expect(page.locator(".profile-page")).toBeVisible();
-  await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Start my journey" }).click();
   await expect(
     page.getByRole("heading", { name: "One day at a time, Sam." }),
@@ -579,8 +553,6 @@ test("profile drafts survive reload, require fresh consent, and can be discarded
     "Returning draft",
   );
   await expect(page.getByLabel("Price (PHP)")).toHaveValue("15");
-  await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("checkbox")).not.toBeChecked();
   await page.getByRole("button", { name: "Cancel setup" }).click();
   await page.getByRole("button", { name: "Discard saved setup" }).click();
   await expect(
