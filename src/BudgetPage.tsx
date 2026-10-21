@@ -114,7 +114,7 @@ export function BudgetPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return (
-    <>
+    <div className="finance-page">
       <PageTitle
         eyebrow="YOUR MONEY, IN ONE PLACE"
         title="Your budget."
@@ -300,21 +300,25 @@ export function BudgetPage() {
             subtitle="Updated automatically from your income and expenses."
           />
           <div className="finance-guide">
-            <span>Available per day for the rest of this month</span>
-            <strong data-testid="finance-allowance">
-              {summary.current ? money(summary.dailyAvailable) : "—"}
-            </strong>
-            <p>
-              The lower of your unspent budget and recorded balance, after
-              reserving your savings target, divided across the days remaining
-              including today. Unreceived income is never counted.
-            </p>
-            <span>Projected month-end expenses</span>
-            <strong>{money(summary.projected)}</strong>
-            <p>
-              Based on the calendar-day average of recorded expenses. Missing
-              entries and one-off purchases affect the estimate.
-            </p>
+            <div className="finance-guide-metric">
+              <span>Available per day for the rest of this month</span>
+              <strong data-testid="finance-allowance">
+                {summary.current ? money(summary.dailyAvailable) : "—"}
+              </strong>
+              <p>
+                The lower of your unspent budget and recorded balance, after
+                reserving your savings target, divided across the days remaining
+                including today. Unreceived income is never counted.
+              </p>
+            </div>
+            <div className="finance-guide-metric">
+              <span>Projected month-end expenses</span>
+              <strong>{money(summary.projected)}</strong>
+              <p>
+                Based on the calendar-day average of recorded expenses. Missing
+                entries and one-off purchases affect the estimate.
+              </p>
+            </div>
           </div>
           {settings && summary.projected > settings.monthlyLimit && (
             <p className="notice">
@@ -350,7 +354,7 @@ export function BudgetPage() {
           )}
         </section>
       </div>
-      <section className="card">
+      <section className="card finance-category-section">
         <CardTitle
           title="Spending by category"
           subtitle="Set optional category limits. These divide your overall plan; they do not add to it."
@@ -472,7 +476,7 @@ export function BudgetPage() {
           </p>
         )}
       </section>
-      <section className="card">
+      <section className="card finance-history-section">
         <CardTitle
           title="Income & expense history"
           subtitle="Filter, edit, or remove transactions. Automatic cigarette entries link to their original record."
@@ -523,22 +527,31 @@ export function BudgetPage() {
             </select>
           </Field>
         </div>
-        <p className="muted">
-          {rows.length} transactions · filtered income{" "}
-          {money(
-            rows
-              .filter((row) => row.type === "income")
-              .reduce((sum, row) => sum + Math.round(row.amount * 100), 0) /
-              100,
-          )}{" "}
-          · filtered expenses{" "}
-          {money(
-            rows
-              .filter((row) => row.type === "expense")
-              .reduce((sum, row) => sum + Math.round(row.amount * 100), 0) /
-              100,
-          )}
-        </p>
+        <div className="finance-filter-summary">
+          <span>{rows.length} transactions</span>
+          <span>
+            Filtered income{" "}
+            <strong>
+              {money(
+                rows
+                  .filter((row) => row.type === "income")
+                  .reduce((sum, row) => sum + Math.round(row.amount * 100), 0) /
+                  100,
+              )}
+            </strong>
+          </span>
+          <span>
+            Filtered expenses{" "}
+            <strong>
+              {money(
+                rows
+                  .filter((row) => row.type === "expense")
+                  .reduce((sum, row) => sum + Math.round(row.amount * 100), 0) /
+                  100,
+              )}
+            </strong>
+          </span>
+        </div>
         {rows.length ? (
           <div className="finance-history">
             {rows.slice(0, visible).map((row) => (
@@ -625,7 +638,7 @@ export function BudgetPage() {
           onClose={() => setEditor(null)}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -667,7 +680,7 @@ function TransactionEditor({
       }}
     >
       <form
-        className="form-stack"
+        className="form-stack finance-editor"
         onSubmit={async (event) => {
           event.preventDefault();
           setBusy(true);
